@@ -91,6 +91,67 @@
   .gradient-bg {
     background: linear-gradient(135deg, #f5f7ff 0%, #c5d8ff 50%, #a2c0ff 100%);
   }
+  
+  /* Button hover animations */
+  a, button {
+    transform-origin: center;
+    backface-visibility: hidden;
+    position: relative;
+  }
+  
+  /* Enhanced hover effects */
+  a:hover::after, button:hover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, transparent 70%);
+    opacity: 0;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0% { 
+      opacity: 0; 
+      transform: scale(0.95); 
+    }
+    50% { 
+      opacity: 0.5; 
+      transform: scale(1.05); 
+    }
+    100% { 
+      opacity: 0; 
+      transform: scale(0.95); 
+    }
+  }
+  
+  /* Blob animation */
+  @keyframes blob {
+    0% {
+      transform: translate(0, 0) scale(1);
+    }
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+  }
+  
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+  
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
 }
 
 nextjs-portal {
