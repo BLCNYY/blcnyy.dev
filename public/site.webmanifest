@@ -1,7 +1,7 @@
 {
-    "name": "Creatr Base",
-    "short_name": "Creatr",
-    "description": "Creatr - Your Creative Platform",
+    "name": "blcnyy.dev",
+    "short_name": "blcnyy.dev",
+    "description": "World's simplest personal website… Yet aesthetic!",
     "icons": [{
             "src": "/android-chrome-192x192.png",
             "sizes": "192x192",
