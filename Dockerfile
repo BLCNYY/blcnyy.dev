@@ -35,5 +35,6 @@ RUN cd /source && \
 COPY --from=deps /app/node_modules /deps/node_modules
 
 # Clean up the source directory and extract the tar
-RUN rm -rf /source/* && \
-    mv /source.tar.gz /source/
+RUN mv /source.tar.gz /tmp/ && \
+    rm -rf /source/* && \
+    mv /tmp/source.tar.gz /source/
