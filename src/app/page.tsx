@@ -74,7 +74,7 @@ export default function HomePage() {
             )}
             style={{ fontFamily: "JetBrains Mono, monospace" }}
           >
-            <span className="relative z-10">Cıntact</span>
+            <span className="relative z-10">Contact</span>
             <Mail
               size={16}
               className="relative w-4 h-4 z-10 transition-all duration-300 group-hover:rotate-12 group-hover:scale-125"
