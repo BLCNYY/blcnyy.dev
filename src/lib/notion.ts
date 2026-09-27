@@ -224,11 +224,15 @@ const fetchNotionJson = async <T>(
     const response = await fetch(input, init);
 
     if (!response.ok) {
+      console.error(
+        `Notion request failed (${response.status}): ${await response.text()}`,
+      );
       return null;
     }
 
     return (await response.json()) as T;
-  } catch {
+  } catch (error) {
+    console.error("Notion request failed:", error);
     return null;
   }
 };
@@ -238,6 +242,7 @@ const queryDatabase = async (body: Record<string, unknown>) => {
   const databaseId = process.env.NOTION_DATABASE_ID;
 
   if (!token || !databaseId) {
+    console.error("NOTION_TOKEN or NOTION_DATABASE_ID is not set.");
     return null;
   }
 
