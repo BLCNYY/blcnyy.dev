@@ -4,14 +4,14 @@ export const profile = {
   identity: {
     name: "Ömer Balkan",
     brand: "BLCNYY / blcnyy",
-    publicAskUrl: "https://ask.blcnyy.dev",
-    website: "https://blcnyy.dev",
+    publicAskUrl: "https://www.blcnyy.dev/ask",
+    website: "https://www.blcnyy.dev",
     location: "İstanbul, Türkiye",
     role: "High school student, young builder, designer, and creator.",
     summary:
       "Ömer Balkan is a student builder from İstanbul creating at the intersection of AI, design, and internet products.",
     shortBio:
-      "He shares ideas publicly, experiments with emerging tools, and builds practical projects like Salah[Now] and ask.blcnyy.dev.",
+      "He shares ideas publicly, experiments with emerging tools, and builds practical projects like Salah[Now] and blcnyy.dev.",
     longerBio:
       "Ömer Balkan is a young internet-native builder from İstanbul, Türkiye, known for his interest in AI, product design, and practical software. As a student, he has built a public identity around exploring new tools early, sharing product thoughts online, and using AI-assisted workflows to turn ideas into real projects.",
     currentFocus:
@@ -75,7 +75,6 @@ export const profile = {
   brandReferences: [
     "BLCNYY",
     "blcnyy.dev",
-    "ask.blcnyy.dev",
   ],
   productStyle: [
     "Clean",
@@ -97,7 +96,7 @@ export const profile = {
   ],
   currentSetup: [
     "As of April 25, 2026, Ömer uses an M2 MacBook Air.",
-    "As of April 25, 2026, he uses the Codex app for vibe-coding his projects, including ask.blcnyy.dev.",
+    "As of April 25, 2026, he uses the Codex app for vibe-coding his projects, including blcnyy.dev.",
     "As of May 21, 2026, his tech setup also includes a Logitech MX Master 4 mouse, Apple Watch Series 10, AirPods Pro 2, iPhone 13, and iPad (10th generation).",
     "He uses OpenAI services like ChatGPT and Codex to get things done faster every day.",
     "His favorite macOS app is Raycast, a launcher and productivity app for quickly opening apps, running commands, searching, and automating small workflows.",
@@ -105,7 +104,7 @@ export const profile = {
   ],
   currentTools: [
     "M2 MacBook Air",
-    "Codex app for vibe-coding and shipping projects, including ask.blcnyy.dev",
+    "Codex app for vibe-coding and shipping projects, including blcnyy.dev",
     "Raycast, a launcher and productivity app for quickly opening apps, running commands, searching, and automating small workflows",
     "Figma",
     "Ghostty as his default terminal app on Mac",
@@ -113,7 +112,7 @@ export const profile = {
     "ChatGPT for everyday AI assistance and faster execution",
     "AI-assisted coding tools",
     "Natural language prompting as part of the building workflow",
-    "Notion-backed publishing for the blcnyy.dev logbook-style blog",
+    "Notion-backed publishing for the blcnyy.dev blog",
   ],
   techSetup: [
     "Laptop: M2 MacBook Air",
@@ -160,7 +159,7 @@ export const profile = {
     "He is deeply interested in writing about trending news, AI, and technology.",
     "He has written in both English and Turkish about AI, the digitalizing world, and related tech topics.",
     "His public writing has included his own Substack newsletter and newspapers published by his school.",
-    "A logbook-style blog is part of his public web presence.",
+    "He publishes articles on the blog at blcnyy.dev/blog.",
   ],
   personalBrandThemes: [
     "student builder",
@@ -176,14 +175,14 @@ export const profile = {
   projects: [
     {
       name: "blcnyy.dev",
-      url: "https://blcnyy.dev",
+      url: "https://www.blcnyy.dev",
       summary:
-        "A terminal-style biography and logbook website that presents Ömer's story, writing, and public identity.",
+        "Ömer's personal website, with a six-scene Explore experience, an AI profile called Ask, and a Notion-backed blog.",
       details: [
         "Built with Next.js.",
-        "Styled like a macOS terminal session.",
-        "The homepage works like an interactive discovery flow.",
-        "Published writing is loaded into a matching logbook-style blog.",
+        "Explore at / presents six scenes: identity, introduction, story, Salah[Now], latest articles, and an invitation to Ask.",
+        "Ask at /ask is an AI profile grounded in src/lib/blcnyy-profile.ts, where visitors can ask about Ömer's story, work, interests, and projects.",
+        "Published writing is available at /blog.",
         "The blog is Notion-backed and supports multilingual content fallback.",
       ],
     },
@@ -213,20 +212,10 @@ export const profile = {
         "Reflects Ömer's product thinking around useful consumer tools.",
       ],
     },
-    {
-      name: "ask.blcnyy.dev",
-      url: "https://ask.blcnyy.dev",
-      summary:
-        "A platform Ömer is building so people can ask an AI about him and learn more about him.",
-      details: [
-        "Turns his public identity, projects, and story into an interactive AI-driven profile.",
-        "It should feel personal, not like a generic resume website.",
-      ],
-    },
   ],
   links: {
-    publicAsk: "https://ask.blcnyy.dev",
-    website: "https://blcnyy.dev",
+    publicAsk: "https://www.blcnyy.dev/ask",
+    website: "https://www.blcnyy.dev",
     x: "Public presence exists on X under BLCNYY / blcnyy, but the exact URL is not stored here yet.",
     github:
       "Public code exists for some projects, but the exact GitHub profile URL is not stored here yet.",
@@ -245,13 +234,13 @@ export const profile = {
     "He is from İstanbul, Türkiye.",
     "He is a student.",
     "He is interested in tech, AI, design, and building products.",
-    "He has public projects including blcnyy.dev, Salah[Now], Subzeez, and ask.blcnyy.dev.",
+    "He has public projects including blcnyy.dev, Salah[Now], and Subzeez.",
     "He has built a public online presence around AI and internet products.",
     "He uses AI-assisted workflows to build.",
     "He shares public thoughts on X.",
     "He cares about useful, minimal, thoughtful software.",
     "He has a public story involving media appearances and bilingual writing.",
-    "As of April 25, 2026, he uses an M2 MacBook Air and the Codex app for vibe-coding projects, including ask.blcnyy.dev.",
+    "As of April 25, 2026, he uses an M2 MacBook Air and the Codex app for vibe-coding projects, including blcnyy.dev.",
     "As of May 21, 2026, his tech setup includes an M2 MacBook Air, Logitech MX Master 4 mouse, Apple Watch Series 10, AirPods Pro 2, iPhone 13, and iPad (10th generation).",
     "He calls himself the #1 fan of OpenAI and uses OpenAI services like ChatGPT and Codex to get things done faster every day.",
     "OpenAI invited him to attend OpenAI DevDay 2026 in San Francisco on September 29, 2026, but he could not attend because his US visa was not issued.",
@@ -295,12 +284,12 @@ export const profile = {
     {
       question: "What projects has he worked on publicly?",
       answer:
-        "Publicly referenced projects include blcnyy.dev, Salah[Now], Subzeez, and ask.blcnyy.dev.",
+        "Publicly referenced projects include blcnyy.dev, Salah[Now], and Subzeez.",
     },
     {
       question: "What is blcnyy.dev?",
       answer:
-        "It is Ömer's terminal-style biography and logbook website, built to present his story and published writing in a more interactive way.",
+        "It is Ömer's personal website at https://www.blcnyy.dev, built with Next.js. Explore at / presents his profile across six scenes, Ask at /ask answers questions using the facts in this profile, and the Notion-backed blog at /blog publishes his writing with multilingual content fallback.",
     },
     {
       question: "What is Salah[Now]?",
@@ -311,11 +300,6 @@ export const profile = {
       question: "What is Subzeez?",
       answer:
         "Subzeez is a subscription-tracking product designed to help people manage recurring payments. It is abandoned for now while Ömer focuses on bigger things 👀.",
-    },
-    {
-      question: "What is ask.blcnyy.dev?",
-      answer:
-        "It is an AI-powered profile experience where visitors can ask questions and learn about Ömer interactively.",
     },
     {
       question: "Has he appeared in the media?",
@@ -335,7 +319,7 @@ export const profile = {
     {
       question: "What device and coding tools does he currently use?",
       answer:
-        "Ömer uses an M2 MacBook Air and the Codex app for vibe-coding his projects, including ask.blcnyy.dev. His setup also includes a Logitech MX Master 4 mouse, Apple Watch Series 10, AirPods Pro 2, iPhone 13, and iPad (10th generation). His favorite macOS app is Raycast, and he uses Ghostty as his default terminal app on Mac.",
+        "Ömer uses an M2 MacBook Air and the Codex app for vibe-coding his projects, including blcnyy.dev. His setup also includes a Logitech MX Master 4 mouse, Apple Watch Series 10, AirPods Pro 2, iPhone 13, and iPad (10th generation). His favorite macOS app is Raycast, and he uses Ghostty as his default terminal app on Mac.",
     },
     {
       question: "What is his tech setup?",
