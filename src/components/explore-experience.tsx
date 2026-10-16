@@ -9,10 +9,15 @@ import {
   type TouchEvent as ReactTouchEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 
+import {
+  type BackdropFormation,
+  ExploreBackdrop,
+} from "@/components/explore-backdrop";
 import { formatIsoDate } from "@/lib/date";
 import { type Dictionary, getDictionary } from "@/lib/dictionaries";
 import type {
@@ -50,6 +55,10 @@ type SceneStyle = CSSProperties & {
 };
 
 const GITHUB_AVATAR_URL = "https://github.com/BLCNYY.png?size=480";
+const PROJECT_FORMATIONS: Record<string, BackdropFormation> = {
+  duly: "orb",
+  "salah-now": "compass",
+};
 const POSITION_EPSILON = 0.001;
 const WHEEL_GESTURE_SETTLE_MS = 115;
 const WHEEL_TRAVEL_PER_SCENE = 90;
@@ -350,6 +359,19 @@ export function ExploreExperience({
     { id: "ask", label: sceneLabels.ask },
   ];
   const lastSceneIndex = scenes.length - 1;
+  // One background shape per scene, in scene order.
+  const backdropFormations = useMemo<BackdropFormation[]>(
+    () => [
+      "halo",
+      "waves",
+      "spiral",
+      ...projects.map((project) => PROJECT_FORMATIONS[project.id] ?? "lattice"),
+      "camera",
+      "starfield",
+      "warp",
+    ],
+    [projects],
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [displayPosition, setDisplayPosition] = useState(0);
   const [isReady, setIsReady] = useState(false);
@@ -654,6 +676,11 @@ export function ExploreExperience({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      <ExploreBackdrop
+        formations={backdropFormations}
+        positionRef={displayPositionRef}
+      />
+
       <p className="sr-only" aria-live="polite">
         {dictionary.explore.sectionStatus(
           activeIndex + 1,
