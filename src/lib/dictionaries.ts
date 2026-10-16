@@ -7,9 +7,8 @@ const en = {
     explore: "Explore",
     writing: "Writing",
     ask: "Ask",
-    switchTo: "TR",
-    switchToLabel: "Türkçe",
-    switchToLang: "tr",
+    changeLanguage: "Change language",
+    languages: "Languages",
   },
   meta: {
     siteDescription:
@@ -181,9 +180,8 @@ const tr: Dictionary = {
     explore: "Keşfet",
     writing: "Yazılar",
     ask: "Sor",
-    switchTo: "EN",
-    switchToLabel: "English",
-    switchToLang: "en",
+    changeLanguage: "Dili değiştir",
+    languages: "Diller",
   },
   meta: {
     siteDescription:

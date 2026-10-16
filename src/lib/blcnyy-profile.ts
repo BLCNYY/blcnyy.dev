@@ -189,7 +189,7 @@ export const profile = {
         "Ömer's personal website, with a scene-based Explore experience, an AI profile called Ask, and a Notion-backed blog, available in English and Turkish.",
       details: [
         "Built with Next.js.",
-        "The top navigation has three items: Explore, Writing, and Ask, plus an EN/TR button. The Turkish version lives under /tr.",
+        "The top navigation has three items: Explore, Writing, and Ask, plus a globe button that opens a language menu (English or Türkçe). The Turkish version lives under /tr.",
         "Explore at / presents scenes for his identity (with links to X, Instagram, and GitHub), introduction, story, Duly, Salah[Now], his Turkish Instagram content, latest articles, and an invitation to Ask.",
         "Ask at /ask is an AI profile grounded in src/lib/blcnyy-profile.ts, where visitors can ask about Ömer's story, work, interests, and projects.",
         "Published writing is available under Writing at /blog.",

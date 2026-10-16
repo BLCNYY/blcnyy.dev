@@ -2,7 +2,7 @@
 
 The personal website for Ömer Balkan, built with Next.js.
 
-The site is available in English (at the root) and Turkish (under `/tr`); the EN/TR button next to the navigation switches between the same page in each language. The top navigation has three items:
+The site is available in English (at the root) and Turkish (under `/tr`); the globe button next to the navigation opens a language menu that switches to the same page in the other language. The top navigation has three items:
 
 - **Explore** is a scene-based profile controlled by wheel, trackpad, touch, or keyboard input: identity, introduction, story, one scene per project (Duly, Salah[Now]), Instagram, latest articles, and Ask.
 - **Writing** lists every article. Articles load from Notion and can be read in any language that has a `Content (XX)` property.
