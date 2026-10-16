@@ -23,6 +23,13 @@ type SearchHistoryEntry = {
   question: string;
   answer: string;
   createdAt: number;
+  signature?: string;
+};
+
+type ChatTurn = {
+  question: string;
+  answer: string;
+  signature: string;
 };
 
 type SelectionAction = {
@@ -202,6 +209,13 @@ function RemoveIcon() {
 const RETURNING_USER_STORAGE_KEY = "ask-blcnyy:returning-user";
 const SEARCH_HISTORY_STORAGE_KEY = "ask-blcnyy:search-history";
 const MAX_HISTORY_ITEMS = 5;
+const MAX_CONTEXT_TURNS = 3;
+const SUGGESTED_QUESTIONS = [
+  "Who is Ömer Balkan?",
+  "What is Salah[Now]?",
+  "What does he write about?",
+  "What's his tech setup?",
+] as const;
 const MAX_SPEECH_CACHE_ITEMS = 5;
 const SPEECH_CACHE_DB_NAME = "ask-blcnyy:speech-cache";
 const SPEECH_CACHE_DB_VERSION = 1;
@@ -423,7 +437,8 @@ function readSearchHistory(): SearchHistoryEntry[] {
           typeof item.answer === "string" &&
           item.answer.trim().length > 0 &&
           "createdAt" in item &&
-          typeof item.createdAt === "number"
+          typeof item.createdAt === "number" &&
+          (!("signature" in item) || typeof item.signature === "string")
         );
       },
     );
@@ -625,6 +640,11 @@ export function ChatShell() {
   const [isDictating, setIsDictating] = useState(false);
   const [speechStatus, setSpeechStatus] = useState<SpeechStatus>("idle");
   const [speechError, setSpeechError] = useState("");
+  const [answerSignature, setAnswerSignature] = useState("");
+  const [isFollowUp, setIsFollowUp] = useState(false);
+  const [wasStopped, setWasStopped] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const threadRef = useRef<ChatTurn[]>([]);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const answerRef = useRef<HTMLDivElement | null>(null);
   const dictationBasePromptRef = useRef("");
@@ -672,8 +692,13 @@ export function ChatShell() {
   }
 
   useEffect(() => {
-    const hasVisitedBefore =
-      window.localStorage.getItem(RETURNING_USER_STORAGE_KEY) === "true";
+    let hasVisitedBefore = false;
+
+    try {
+      hasVisitedBefore =
+        window.localStorage.getItem(RETURNING_USER_STORAGE_KEY) === "true";
+    } catch {}
+
     const storedHistory = readSearchHistory();
     const timeoutId = window.setTimeout(() => {
       setIsReturningUser(hasVisitedBefore);
@@ -735,6 +760,7 @@ export function ChatShell() {
     const speechCache = speechCacheRef.current;
 
     return () => {
+      abortControllerRef.current?.abort();
       recognitionRef.current?.abort();
       audioRef.current?.pause();
       audioRef.current = null;
@@ -755,12 +781,17 @@ export function ChatShell() {
     }
   }, [answer]);
 
-  function storeSearchHistory(question: string, savedAnswer: string) {
+  function storeSearchHistory(
+    question: string,
+    savedAnswer: string,
+    signature: string,
+  ) {
     setSearchHistory((currentHistory) => {
       const historyEntry: SearchHistoryEntry = {
         question,
         answer: savedAnswer,
         createdAt: Date.now(),
+        ...(signature ? { signature } : {}),
       };
       const nextHistory = [
         historyEntry,
@@ -814,9 +845,21 @@ export function ChatShell() {
 
     setSubmittedPrompt(entry.question);
     setAnswer(entry.answer);
+    setAnswerSignature(entry.signature ?? "");
     setError("");
     setPrompt("");
     setCachedAnswerQuestion(entry.question);
+    setIsFollowUp(false);
+    setWasStopped(false);
+    threadRef.current = entry.signature
+      ? [
+          {
+            question: entry.question,
+            answer: entry.answer,
+            signature: entry.signature,
+          },
+        ]
+      : [];
   }
 
   async function submitMessage(rawMessage: string) {
@@ -826,9 +869,17 @@ export function ChatShell() {
       return;
     }
 
+    const history = threadRef.current.slice(-MAX_CONTEXT_TURNS);
+    const abortController = new AbortController();
+    let streamedAnswer = "";
+
+    abortControllerRef.current = abortController;
     setIsLoading(true);
     setSubmittedPrompt(message);
+    setIsFollowUp(history.length > 0);
+    setWasStopped(false);
     setAnswer("");
+    setAnswerSignature("");
     setError("");
     setPrompt("");
     setCachedAnswerQuestion("");
@@ -847,7 +898,8 @@ export function ChatShell() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, history }),
+        signal: abortController.signal,
       });
 
       const contentType = response.headers.get("content-type") ?? "";
@@ -879,7 +931,7 @@ export function ChatShell() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let streamedAnswer = "";
+      let signature = "";
       let streamFinished = false;
 
       while (true) {
@@ -917,6 +969,7 @@ export function ChatShell() {
           }
 
           if (event.type === "done") {
+            signature = event.data;
             streamFinished = true;
             break;
           }
@@ -931,16 +984,36 @@ export function ChatShell() {
         throw new Error("I got an empty answer back. Please try again.");
       }
 
-      storeSearchHistory(message, streamedAnswer);
+      setAnswerSignature(signature);
+      storeSearchHistory(message, streamedAnswer, signature);
+      threadRef.current = signature
+        ? [
+            ...history,
+            { question: message, answer: streamedAnswer, signature },
+          ].slice(-MAX_CONTEXT_TURNS)
+        : [];
     } catch (requestError) {
+      if (abortController.signal.aborted) {
+        setWasStopped(true);
+        return;
+      }
+
       setError(
         requestError instanceof Error
           ? requestError.message
           : "I couldn't reach the assistant. Please try again.",
       );
     } finally {
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current = null;
+      }
+
       setIsLoading(false);
     }
+  }
+
+  function stopAnswer() {
+    abortControllerRef.current?.abort();
   }
 
   async function askCachedQuestionAgain() {
@@ -948,6 +1021,7 @@ export function ChatShell() {
       return;
     }
 
+    threadRef.current = [];
     await submitMessage(cachedAnswerQuestion);
   }
 
@@ -956,8 +1030,12 @@ export function ChatShell() {
       return;
     }
 
+    threadRef.current = [];
     setSubmittedPrompt("");
     setAnswer("");
+    setAnswerSignature("");
+    setIsFollowUp(false);
+    setWasStopped(false);
     setError("");
     setCachedAnswerQuestion("");
     setSelectionAction(null);
@@ -1083,7 +1161,7 @@ export function ChatShell() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: speechText }),
+        body: JSON.stringify({ text: speechText, signature: answerSignature }),
       });
 
       if (!response.ok) {
@@ -1267,7 +1345,7 @@ export function ChatShell() {
             ) : null}
 
             <p className="ui-mono mb-4 text-[0.72rem] uppercase tracking-[0.35em] text-white/55">
-              YOU ASKED:
+              {isFollowUp ? "FOLLOW-UP:" : "YOU ASKED:"}
             </p>
 
             <h1 className="max-w-4xl text-4xl font-bold tracking-[-0.025em] text-white sm:text-5xl lg:text-[4.75rem]">
@@ -1287,8 +1365,18 @@ export function ChatShell() {
                 </div>
               ) : null}
 
-              {answer && !isLoading ? (
-                <div className="mt-6 flex items-center gap-3">
+              {wasStopped ? (
+                <p
+                  className={`ui-mono text-xs uppercase tracking-[0.28em] text-white/55 ${
+                    answer ? "mt-4" : ""
+                  }`}
+                >
+                  {answer ? "Stopped" : "Stopped before an answer arrived"}
+                </p>
+              ) : null}
+
+              {answer && !isLoading && !wasStopped ? (
+                <div className="mt-6 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     onClick={playAnswerSpeech}
@@ -1321,9 +1409,7 @@ export function ChatShell() {
                   ) : null}
 
                   {speechError ? (
-                    <p className="ui-mono text-xs uppercase tracking-[0.18em] text-rose-300/80">
-                      {speechError}
-                    </p>
+                    <p className="text-sm text-rose-300/85">{speechError}</p>
                   ) : null}
                 </div>
               ) : null}
@@ -1345,7 +1431,7 @@ export function ChatShell() {
               ) : null}
 
               {isLoading && answer ? (
-                <p className="ui-mono mt-4 text-xs uppercase tracking-[0.28em] text-white/45">
+                <p className="ui-mono mt-4 text-xs uppercase tracking-[0.28em] text-white/55">
                   Streaming...
                 </p>
               ) : null}
@@ -1364,6 +1450,7 @@ export function ChatShell() {
                 alt="Ömer Balkan GitHub profile picture"
                 width={160}
                 height={160}
+                preload
                 className="relative h-14 w-14 rounded-full object-cover ring-1 ring-white/15 transition duration-500 group-hover:scale-[1.06] group-hover:ring-white/28 group-hover:shadow-[0_0_28px_rgba(255,255,255,0.12)] sm:h-16 sm:w-16 lg:h-20 lg:w-20"
               />
 
@@ -1371,6 +1458,24 @@ export function ChatShell() {
                 Ask anything about me
               </h1>
             </div>
+
+            {!showSearchHistory ? (
+              <div
+                className="mt-10 flex max-w-3xl flex-wrap justify-center gap-2"
+                aria-label="Suggested questions"
+              >
+                {SUGGESTED_QUESTIONS.map((question) => (
+                  <button
+                    key={question}
+                    type="button"
+                    onClick={() => void submitMessage(question)}
+                    className="rounded-full border border-white/12 bg-white/[0.06] px-4 py-2 text-sm text-white/78 transition duration-300 hover:-translate-y-px hover:border-white/24 hover:bg-white/10 hover:text-white active:translate-y-0 active:scale-[0.98]"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             {showSearchHistory ? (
               <div className="mt-8 w-full max-w-3xl rounded-[1.75rem] border border-white/12 bg-white/[0.08] p-3 transition duration-300 hover:border-white/18 hover:bg-white/[0.10]">
@@ -1407,7 +1512,7 @@ export function ChatShell() {
                           removeSearchHistoryEntry(historyItem.question)
                         }
                         aria-label={`Remove recent search: ${historyItem.question}`}
-                        className="pointer-events-none rounded-full p-2 text-white/42 opacity-0 transition duration-300 hover:bg-white/8 hover:text-white group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+                        className="pointer-events-none rounded-full p-2 text-white/42 opacity-0 transition duration-300 hover:bg-white/8 hover:text-white group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100"
                       >
                         <RemoveIcon />
                       </button>
@@ -1439,8 +1544,10 @@ export function ChatShell() {
       <div className="ask-composer-dock pointer-events-none fixed inset-x-0 bottom-0 z-10 px-4 pb-4 sm:px-6 sm:pb-6">
         {dictationStatus ? (
           <p
-            className={`ui-mono pointer-events-auto mx-auto mb-3 max-w-4xl px-4 text-xs uppercase tracking-[0.18em] ${
-              dictationError ? "text-rose-300/80" : "text-white/50"
+            className={`pointer-events-auto mx-auto mb-3 max-w-4xl px-4 ${
+              dictationError
+                ? "text-sm text-rose-300/85"
+                : "ui-mono text-xs uppercase tracking-[0.18em] text-white/55"
             }`}
           >
             {dictationStatus}
@@ -1460,8 +1567,12 @@ export function ChatShell() {
             value={prompt}
             maxLength={MAX_CHAT_MESSAGE_LENGTH}
             onChange={(event) => setPrompt(event.target.value)}
-            className="ask-composer-input ui-mono min-w-0 flex-1 bg-transparent px-3 py-3 text-base text-white outline-none placeholder:text-white/45 focus:placeholder:text-white/28 sm:text-lg"
-            placeholder="Ask about work, projects, writing, or anything else..."
+            className="ask-composer-input ui-mono min-w-0 flex-1 bg-transparent px-3 py-3 text-base text-white outline-none placeholder:text-white/52 focus:placeholder:text-white/36 sm:text-lg"
+            placeholder={
+              answer && !isLoading && !wasStopped
+                ? "Ask a follow-up..."
+                : "Ask about work, projects, writing, or anything else..."
+            }
             autoComplete="off"
             spellCheck={false}
           />
@@ -1482,13 +1593,24 @@ export function ChatShell() {
             <MicIcon isActive={isDictating} />
           </button>
 
-          <button
-            type="submit"
-            disabled={isLoading || !prompt.trim()}
-            className="ask-composer-submit ui-mono rounded-[1.35rem] bg-white px-5 py-3 text-sm font-medium uppercase tracking-[0.2em] text-black transition duration-300 hover:-translate-y-px hover:bg-white/85 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/35"
-          >
-            {isLoading ? "..." : "Ask"}
-          </button>
+          {isLoading ? (
+            <button
+              type="button"
+              onClick={stopAnswer}
+              aria-label="Stop the answer"
+              className="ask-composer-submit ui-mono rounded-[1.35rem] border border-white/20 bg-white/10 px-5 py-3 text-sm font-medium uppercase tracking-[0.2em] text-white transition duration-300 hover:-translate-y-px hover:bg-white/16 active:translate-y-0 active:scale-[0.98]"
+            >
+              Stop
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!prompt.trim()}
+              className="ask-composer-submit ui-mono rounded-[1.35rem] bg-white px-5 py-3 text-sm font-medium uppercase tracking-[0.2em] text-black transition duration-300 hover:-translate-y-px hover:bg-white/85 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/35"
+            >
+              Ask
+            </button>
+          )}
         </form>
 
       </div>

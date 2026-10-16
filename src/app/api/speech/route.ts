@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 
+import { isValidAnswerSignature } from "@/lib/answer-signature";
+import { MAX_CHAT_HISTORY_ANSWER_LENGTH } from "@/lib/limits";
+import { buildOpenRouterHeaders } from "@/lib/openrouter";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { isCrossSiteRequest } from "@/lib/request-guard";
 
 const DEFAULT_OPENROUTER_TTS_MODEL = "google/gemini-3.1-flash-tts-preview";
 const DEFAULT_OPENROUTER_TTS_VOICE = "Zephyr";
 const OPENROUTER_SPEECH_URL = "https://openrouter.ai/api/v1/audio/speech";
-const MAX_SPEECH_TEXT_LENGTH = 6000;
+const MAX_SPEECH_TEXT_LENGTH = MAX_CHAT_HISTORY_ANSWER_LENGTH;
 const SPEECH_RATE_LIMIT = {
   namespace: "speech",
   limit: 8,
@@ -14,20 +18,14 @@ const SPEECH_RATE_LIMIT = {
 const FRIENDLY_SPEECH_ERROR =
   "I couldn't generate speech for that answer. Please try again in a moment.";
 
-function buildOpenRouterHeaders(apiKey: string) {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-    ...(process.env.OPENROUTER_SITE_URL
-      ? { "HTTP-Referer": process.env.OPENROUTER_SITE_URL }
-      : {}),
-    ...(process.env.OPENROUTER_SITE_NAME
-      ? { "X-Title": process.env.OPENROUTER_SITE_NAME }
-      : {}),
-  };
-}
-
 export async function POST(request: Request) {
+  if (isCrossSiteRequest(request)) {
+    return NextResponse.json(
+      { error: "Requests from other sites are not allowed." },
+      { status: 403 },
+    );
+  }
+
   const rateLimit = checkRateLimit(request, SPEECH_RATE_LIMIT);
 
   if (!rateLimit.allowed) {
@@ -74,6 +72,21 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "There is no answer text to speak yet." },
       { status: 400, headers: rateLimit.headers },
+    );
+  }
+
+  const signature =
+    typeof payload === "object" && payload !== null && "signature" in payload
+      ? payload.signature
+      : null;
+
+  if (!isValidAnswerSignature(text, signature)) {
+    return NextResponse.json(
+      {
+        error:
+          "Only answers from Ask can be read aloud. Ask the question again to hear it.",
+      },
+      { status: 403, headers: rateLimit.headers },
     );
   }
 

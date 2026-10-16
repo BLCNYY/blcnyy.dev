@@ -18,6 +18,7 @@ import type {
   ArticlePreview,
   ExploreProject,
 } from "@/lib/explore-content";
+import { socialLinks } from "@/lib/site";
 
 type ExploreExperienceProps = {
   articles: readonly ArticlePreview[];
@@ -26,6 +27,7 @@ type ExploreExperienceProps = {
     heading: string;
     body: string;
   };
+  tagline: string;
 };
 
 type SceneProps = {
@@ -193,6 +195,7 @@ function ArticleCard({
   index: number;
 }) {
   const isLatest = index === 0;
+  const date = formatIsoDate(article.date);
 
   return (
     <Link
@@ -210,7 +213,9 @@ function ArticleCard({
         ) : null}
         <span className="article-pointer-stroke" aria-hidden="true" />
         <div className="article-preview-meta">
-          <span>{isLatest ? "Latest" : formatIsoDate(article.date)}</span>
+          <span>
+            {isLatest ? ["Latest", date].filter(Boolean).join(" · ") : date}
+          </span>
         </div>
         <h3>{article.title}</h3>
         {isLatest && article.summary ? <p>{article.summary}</p> : null}
@@ -230,6 +235,7 @@ export function ExploreExperience({
   articles,
   projects,
   story,
+  tagline,
 }: ExploreExperienceProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [displayPosition, setDisplayPosition] = useState(0);
@@ -561,6 +567,16 @@ export function ExploreExperience({
               BLCNYY
             </h1>
             <p className="identity-real-name">Ömer Balkan</p>
+            <ul className="identity-links" aria-label="Elsewhere">
+              {socialLinks.map((link) => (
+                <li key={link.label}>
+                  <a href={link.url} target="_blank" rel="noreferrer me">
+                    {link.label}
+                    <span aria-hidden="true"> ↗</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </Scene>
@@ -573,7 +589,7 @@ export function ExploreExperience({
       >
         <div className="scene-copy tagline-scene-copy">
           <h2 id="introduction-title" className="tagline-title">
-            Vibe-coder and tech enthusiast from day one
+            {tagline}
           </h2>
         </div>
       </Scene>
@@ -618,7 +634,7 @@ export function ExploreExperience({
               </h2>
             </div>
             <Link href="/blog" className="scene-text-link articles-all-link">
-              All articles <span aria-hidden="true">↗</span>
+              All articles <span aria-hidden="true">→</span>
             </Link>
           </div>
 
@@ -657,7 +673,7 @@ export function ExploreExperience({
             type="button"
             className={index === activeIndex ? "is-active" : ""}
             aria-label={`Go to ${scene.label}`}
-            aria-pressed={index === activeIndex}
+            aria-current={index === activeIndex ? "step" : undefined}
             onClick={() => goTo(index)}
           >
             <span />

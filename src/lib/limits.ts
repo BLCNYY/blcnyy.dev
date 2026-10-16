@@ -1,1 +1,3 @@
 export const MAX_CHAT_MESSAGE_LENGTH = 1000;
+export const MAX_CHAT_HISTORY_TURNS = 3;
+export const MAX_CHAT_HISTORY_ANSWER_LENGTH = 6000;

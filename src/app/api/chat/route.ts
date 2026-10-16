@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 
+import { isValidAnswerSignature, signAnswer } from "@/lib/answer-signature";
 import { buildProfileContext } from "@/lib/blcnyy-profile";
-import { MAX_CHAT_MESSAGE_LENGTH } from "@/lib/limits";
+import { exploreTagline } from "@/lib/explore-content";
+import {
+  MAX_CHAT_HISTORY_ANSWER_LENGTH,
+  MAX_CHAT_HISTORY_TURNS,
+  MAX_CHAT_MESSAGE_LENGTH,
+} from "@/lib/limits";
+import { buildOpenRouterHeaders } from "@/lib/openrouter";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { isCrossSiteRequest } from "@/lib/request-guard";
 
 const DEFAULT_OPENROUTER_MODEL = "google/gemini-3.8-flash";
 const OPENROUTER_CHAT_COMPLETIONS_URL =
@@ -20,11 +28,11 @@ const SYSTEM_PROMPT = `You are the public AI assistant for BLCNYY. You power the
 Use the website context and provided profile context as your grounding. Answer like a helpful, natural personal AI profile.
 
 Website context:
-- The website has two primary experiences in its shared top navigation: Explore and Ask.
-- Explore is the default experience at /. It presents Ömer's profile as six focused scenes: his identity, the tagline "Vibe-coder and tech enthusiast from day one," his story, Salah[Now], his latest articles, and a final invitation to use Ask.
+- The shared top navigation has three items: Explore, Writing, and Ask.
+- Explore is the default experience at /. It presents Ömer's profile as six focused scenes: his identity with links to his X, GitHub, and Substack, the tagline "${exploreTagline}," his story, Salah[Now], his latest articles, and a final invitation to use Ask.
 - Visitors move through Explore with a mouse wheel, trackpad, touch gestures, keyboard controls, or the on-screen section controls. The scenes transition progressively instead of using conventional document scrolling.
 - Ask is available at /ask. It is the AI conversation the visitor is currently using, powered through OpenRouter and grounded in the public profile information stored in this codebase.
-- The complete writing index is at /blog, and individual articles are at /blog/[slug]. Published articles are loaded from Notion, with built-in preview content available when Notion cannot be reached.
+- Writing is the complete article index at /blog, and individual articles are at /blog/[slug]. Articles are loaded from Notion and most can be read in English, Turkish, Spanish, German, and Italian with the language buttons on each article.
 - When a visitor asks where to find something on the website, point them to the relevant Explore scene or route.
 
 Rules:
@@ -35,8 +43,14 @@ Rules:
 - For age questions, answer directly with the calculated age. Do not say the current age is missing if the profile includes a birth date and current date.
 - If a specific fact is missing, say that briefly, then share any useful related context from the profile instead of stopping immediately.
 - Never invent private facts, exact numbers, credentials, partnerships, contact details, or biographical claims that are not grounded in the profile.
+- Earlier turns in this conversation may be included. Use them to resolve follow-up questions like "tell me more" or "why?".
 - Prefer direct, informative answers. Use 1-3 short paragraphs by default, or bullets when the user asks for a list.
 - Keep the tone warm, clear, and human. Do not sound overly defensive or like a compliance disclaimer.`;
+
+type HistoryTurn = {
+  question: string;
+  answer: string;
+};
 
 type MessageContentPart =
   | string
@@ -81,17 +95,30 @@ function extractTextContent(content?: string | MessageContentPart[]) {
     .join("");
 }
 
-function buildOpenRouterHeaders(apiKey: string) {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-    ...(process.env.OPENROUTER_SITE_URL
-      ? { "HTTP-Referer": process.env.OPENROUTER_SITE_URL }
-      : {}),
-    ...(process.env.OPENROUTER_SITE_NAME
-      ? { "X-Title": process.env.OPENROUTER_SITE_NAME }
-      : {}),
-  };
+// Only earlier answers this site signed are accepted as conversation history,
+// so visitors cannot inject fabricated assistant turns.
+function parseHistory(payload: object): HistoryTurn[] {
+  if (!("history" in payload) || !Array.isArray(payload.history)) {
+    return [];
+  }
+
+  return payload.history.slice(-MAX_CHAT_HISTORY_TURNS).flatMap((turn) => {
+    if (
+      typeof turn !== "object" ||
+      turn === null ||
+      typeof turn.question !== "string" ||
+      typeof turn.answer !== "string" ||
+      turn.answer.length > MAX_CHAT_HISTORY_ANSWER_LENGTH ||
+      !isValidAnswerSignature(turn.answer, turn.signature)
+    ) {
+      return [];
+    }
+
+    const question = turn.question.slice(0, MAX_CHAT_MESSAGE_LENGTH).trim();
+    const answer = turn.answer.trim();
+
+    return question && answer ? [{ question, answer }] : [];
+  });
 }
 
 function createSseEvent(
@@ -134,6 +161,13 @@ function findSseBoundary(buffer: string) {
 }
 
 export async function POST(request: Request) {
+  if (isCrossSiteRequest(request)) {
+    return NextResponse.json(
+      { error: "Requests from other sites are not allowed." },
+      { status: 403 },
+    );
+  }
+
   const rateLimit = checkRateLimit(request, CHAT_RATE_LIMIT);
 
   if (!rateLimit.allowed) {
@@ -175,6 +209,8 @@ export async function POST(request: Request) {
   }
 
   const message = rawMessage.trim();
+  const history =
+    typeof payload === "object" && payload !== null ? parseHistory(payload) : [];
 
   if (!message) {
     return NextResponse.json(
@@ -213,6 +249,10 @@ export async function POST(request: Request) {
             role: "system",
             content: `${SYSTEM_PROMPT}\n\nProfile context:\n${buildProfileContext(new Date())}`,
           },
+          ...history.flatMap((turn) => [
+            { role: "user", content: turn.question },
+            { role: "assistant", content: turn.answer },
+          ]),
           {
             role: "user",
             content: message,
@@ -244,6 +284,7 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         let buffer = "";
+        let fullAnswer = "";
         let streamClosed = false;
 
         const enqueueEvent = (
@@ -258,7 +299,7 @@ export async function POST(request: Request) {
             return;
           }
 
-          enqueueEvent("done");
+          enqueueEvent("done", signAnswer(fullAnswer));
           controller.close();
           streamClosed = true;
         };
@@ -300,6 +341,7 @@ export async function POST(request: Request) {
           );
 
           if (textDelta) {
+            fullAnswer += textDelta;
             enqueueEvent("text", textDelta);
           }
 

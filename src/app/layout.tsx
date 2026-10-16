@@ -2,44 +2,39 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
 
 import { SiteNavigation } from "@/components/site-navigation";
+import { baseOpenGraph, siteConfig } from "@/lib/site";
 
 import "./globals.css";
 
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-mono",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://blcnyy.dev"),
+  metadataBase: new URL(siteConfig.url),
   title: {
-    default: "BLCNYY — Ömer Balkan",
+    default: siteConfig.title,
     template: "%s | BLCNYY",
   },
-  description:
-    "Explore Ömer Balkan's story, projects, writing, and personal AI profile.",
-  applicationName: "BLCNYY",
-  authors: [{ name: "Ömer Balkan", url: "https://blcnyy.dev" }],
-  creator: "Ömer Balkan",
-  publisher: "BLCNYY",
-  alternates: {
-    canonical: "/",
-  },
+  description: siteConfig.description,
+  applicationName: siteConfig.name,
+  authors: [{ name: siteConfig.author, url: siteConfig.url }],
+  creator: siteConfig.author,
+  publisher: siteConfig.name,
   openGraph: {
-    title: "BLCNYY — Ömer Balkan",
-    description:
-      "Explore Ömer Balkan's story, projects, writing, and personal AI profile.",
+    ...baseOpenGraph,
+    title: siteConfig.title,
+    description: siteConfig.description,
     url: "/",
-    siteName: "BLCNYY",
-    locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "BLCNYY — Ömer Balkan",
-    description:
-      "Explore Ömer Balkan's story, projects, writing, and personal AI profile.",
+    title: siteConfig.title,
+    description: siteConfig.description,
+    creator: siteConfig.xHandle,
   },
   robots: {
     index: true,

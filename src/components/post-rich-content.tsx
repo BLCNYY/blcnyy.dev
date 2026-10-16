@@ -1,41 +1,137 @@
 import type { ReactNode } from "react";
 
-import type { NotionBlock } from "@/lib/notion";
+import type {
+  NotionBlock,
+  NotionBlockContent,
+  NotionRichText,
+} from "@/lib/notion";
 
 type PostRichContentProps = {
-  blocks: readonly NotionBlock[];
-  fallbackContent: string;
+  blocks?: readonly NotionBlock[];
+  content?: readonly NotionRichText[];
   emptyMessage?: string;
 };
 
-type ListBlockType = "bulleted_list_item" | "numbered_list_item";
+type GroupedBlockType =
+  | "bulleted_list_item"
+  | "numbered_list_item"
+  | "to_do";
 
-const getBlockText = (block: NotionBlock) => {
-  const richText =
-    block.paragraph?.rich_text ??
-    block.heading_1?.rich_text ??
-    block.heading_2?.rich_text ??
-    block.heading_3?.rich_text ??
-    block.bulleted_list_item?.rich_text ??
-    block.numbered_list_item?.rich_text ??
-    block.quote?.rich_text ??
-    block.callout?.rich_text ??
-    [];
+const groupedBlockTypes = new Set<string>([
+  "bulleted_list_item",
+  "numbered_list_item",
+  "to_do",
+]);
 
-  return richText.map((item) => item.plain_text).join("").trim();
-};
+const linkBlockTypes = new Set([
+  "bookmark",
+  "link_preview",
+  "embed",
+  "video",
+  "audio",
+  "pdf",
+  "file",
+]);
 
-const getFallbackParagraphs = (content: string) =>
-  content
-    .split(/\n{2,}/)
-    .map((chunk) => chunk.trim())
-    .filter(Boolean);
+const getBlockContent = (block: NotionBlock): NotionBlockContent =>
+  (block[block.type] as NotionBlockContent | undefined) ?? {};
 
-const collectListItems = (
+const getRichText = (block: NotionBlock) =>
+  getBlockContent(block).rich_text ?? [];
+
+const hasText = (items: readonly NotionRichText[]) =>
+  items.some((item) => item.plain_text.trim());
+
+const getFileUrl = (content: NotionBlockContent) =>
+  content.type === "file" ? content.file?.url : (content.external?.url ?? content.url);
+
+const isSafeHref = (href?: string | null): href is string =>
+  Boolean(href && /^(https?:|mailto:)/i.test(href));
+
+function renderTextWithBreaks(text: string, keyPrefix: string) {
+  const lines = text.split("\n");
+
+  return lines.flatMap((line, index) =>
+    index === 0
+      ? [line]
+      : [<br key={`${keyPrefix}-br-${index}`} />, line],
+  );
+}
+
+function RichText({ items }: { items: readonly NotionRichText[] }) {
+  return (
+    <>
+      {items.map((item, index) => {
+        const key = `rt-${index}`;
+        const annotations = item.annotations ?? {};
+        let node: ReactNode = renderTextWithBreaks(item.plain_text, key);
+
+        if (annotations.code) node = <code>{node}</code>;
+        if (annotations.bold) node = <strong>{node}</strong>;
+        if (annotations.italic) node = <em>{node}</em>;
+        if (annotations.strikethrough) node = <s>{node}</s>;
+        if (annotations.underline) node = <u>{node}</u>;
+
+        if (isSafeHref(item.href)) {
+          node = (
+            <a href={item.href} target="_blank" rel="noreferrer">
+              {node}
+            </a>
+          );
+        }
+
+        return <span key={key}>{node}</span>;
+      })}
+    </>
+  );
+}
+
+// Splits rich text into paragraphs on blank lines while keeping each
+// segment's formatting.
+function splitRichTextParagraphs(items: readonly NotionRichText[]) {
+  const paragraphs: NotionRichText[][] = [[]];
+
+  items.forEach((item) => {
+    const pieces = item.plain_text.split(/\n{2,}/);
+
+    pieces.forEach((piece, index) => {
+      if (index > 0) {
+        paragraphs.push([]);
+      }
+
+      if (piece) {
+        paragraphs[paragraphs.length - 1].push({ ...item, plain_text: piece });
+      }
+    });
+  });
+
+  return paragraphs
+    .map((paragraph) => trimParagraph(paragraph))
+    .filter((paragraph) => hasText(paragraph));
+}
+
+function trimParagraph(paragraph: NotionRichText[]) {
+  if (!paragraph.length) {
+    return paragraph;
+  }
+
+  const trimmed = [...paragraph];
+  const lastIndex = trimmed.length - 1;
+
+  trimmed[0] = { ...trimmed[0], plain_text: trimmed[0].plain_text.trimStart() };
+  trimmed[lastIndex] = {
+    ...trimmed[lastIndex],
+    plain_text: trimmed[lastIndex].plain_text.trimEnd(),
+  };
+
+  return trimmed;
+}
+
+function collectGroup(
   blocks: readonly NotionBlock[],
   startIndex: number,
-  type: ListBlockType,
-) => {
+  type: GroupedBlockType,
+) {
   const items: NotionBlock[] = [];
   let index = startIndex;
 
@@ -45,94 +141,275 @@ const collectListItems = (
   }
 
   return { items, nextIndex: index };
-};
+}
 
-const renderList = (items: readonly NotionBlock[], type: ListBlockType) => {
+function renderChildren(block: NotionBlock) {
+  return block.children?.length ? renderBlocks(block.children) : null;
+}
+
+function renderGroup(items: readonly NotionBlock[], type: GroupedBlockType) {
+  const key = `${items[0]?.id}-${type}`;
+
+  if (type === "to_do") {
+    return (
+      <ul key={key} className="article-todo-list">
+        {items.map((item) => {
+          const checked = Boolean(getBlockContent(item).checked);
+
+          return (
+            <li key={item.id} data-checked={checked ? "true" : "false"}>
+              <span className="article-todo-box" aria-hidden="true">
+                {checked ? "✓" : ""}
+              </span>
+              <span className="sr-only">{checked ? "Done: " : "To do: "}</span>
+              <span>
+                <RichText items={getRichText(item)} />
+                {renderChildren(item)}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
   const listItems = items.map((item) => (
-    <li key={item.id}>{getBlockText(item)}</li>
+    <li key={item.id}>
+      <RichText items={getRichText(item)} />
+      {renderChildren(item)}
+    </li>
   ));
 
   return type === "bulleted_list_item" ? (
-    <ul key={`${items[0]?.id}-bullets`}>{listItems}</ul>
+    <ul key={key}>{listItems}</ul>
   ) : (
-    <ol key={`${items[0]?.id}-numbers`}>{listItems}</ol>
+    <ol key={key}>{listItems}</ol>
   );
-};
+}
 
-const renderBlocks = (blocks: readonly NotionBlock[]) => {
+function renderTable(block: NotionBlock) {
+  const settings = block.table as { has_column_header?: boolean } | undefined;
+  const rows = (block.children ?? []).map(
+    (row) =>
+      ((row.table_row as { cells?: NotionRichText[][] } | undefined)?.cells ??
+        []) as NotionRichText[][],
+  );
+
+  if (!rows.length) {
+    return null;
+  }
+
+  const [headerRow, ...bodyRows] = settings?.has_column_header
+    ? rows
+    : [null, ...rows];
+
+  return (
+    <div key={block.id} className="article-table-wrap">
+      <table>
+        {headerRow ? (
+          <thead>
+            <tr>
+              {headerRow.map((cell, index) => (
+                <th key={index} scope="col">
+                  <RichText items={cell} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+        ) : null}
+        <tbody>
+          {bodyRows.map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              {(row ?? []).map((cell, index) => (
+                <td key={index}>
+                  <RichText items={cell} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function renderBlock(block: NotionBlock): ReactNode {
+  const content = getBlockContent(block);
+  const richText = content.rich_text ?? [];
+  const caption = content.caption ?? [];
+
+  switch (block.type) {
+    case "heading_1":
+      return hasText(richText) ? (
+        <h2 key={block.id}>
+          <RichText items={richText} />
+        </h2>
+      ) : null;
+    case "heading_2":
+      return hasText(richText) ? (
+        <h3 key={block.id}>
+          <RichText items={richText} />
+        </h3>
+      ) : null;
+    case "heading_3":
+      return hasText(richText) ? (
+        <h4 key={block.id}>
+          <RichText items={richText} />
+        </h4>
+      ) : null;
+    case "quote":
+      return (
+        <blockquote key={block.id}>
+          <RichText items={richText} />
+          {renderChildren(block)}
+        </blockquote>
+      );
+    case "callout":
+      return (
+        <div className="article-callout" key={block.id}>
+          <RichText items={richText} />
+          {renderChildren(block)}
+        </div>
+      );
+    case "toggle":
+      return (
+        <details key={block.id} className="article-toggle">
+          <summary>
+            <RichText items={richText} />
+          </summary>
+          {renderChildren(block)}
+        </details>
+      );
+    case "divider":
+      return <hr key={block.id} />;
+    case "code":
+      return (
+        <figure key={block.id} className="article-code">
+          <pre>
+            <code data-language={content.language}>
+              {richText.map((item) => item.plain_text).join("")}
+            </code>
+          </pre>
+          {hasText(caption) ? (
+            <figcaption>
+              <RichText items={caption} />
+            </figcaption>
+          ) : null}
+        </figure>
+      );
+    case "image": {
+      const src = getFileUrl(content);
+
+      if (!src) {
+        return null;
+      }
+
+      const alt = caption.map((item) => item.plain_text).join("").trim();
+
+      return (
+        <figure key={block.id} className="article-figure">
+          {/* Notion image URLs come from many hosts and have unknown sizes. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt={alt} loading="lazy" decoding="async" />
+          {alt ? (
+            <figcaption>
+              <RichText items={caption} />
+            </figcaption>
+          ) : null}
+        </figure>
+      );
+    }
+    case "table":
+      return renderTable(block);
+    case "column_list":
+    case "column":
+    case "synced_block":
+      return block.children?.length ? (
+        <div key={block.id} className="article-group">
+          {renderBlocks(block.children)}
+        </div>
+      ) : null;
+    default:
+      break;
+  }
+
+  if (linkBlockTypes.has(block.type)) {
+    const href = getFileUrl(content);
+
+    if (!isSafeHref(href)) {
+      return null;
+    }
+
+    return (
+      <p key={block.id}>
+        <a className="article-link-block" href={href} target="_blank" rel="noreferrer">
+          {hasText(caption) ? <RichText items={caption} /> : href}
+          <span aria-hidden="true"> ↗</span>
+        </a>
+      </p>
+    );
+  }
+
+  if (!hasText(richText)) {
+    return null;
+  }
+
+  const paragraph = (
+    <p key={block.id}>
+      <RichText items={richText} />
+    </p>
+  );
+
+  return block.children?.length ? (
+    <div key={block.id} className="article-group">
+      {paragraph}
+      <div className="article-indent">{renderBlocks(block.children)}</div>
+    </div>
+  ) : (
+    paragraph
+  );
+}
+
+function renderBlocks(blocks: readonly NotionBlock[]) {
   const nodes: ReactNode[] = [];
   let index = 0;
 
   while (index < blocks.length) {
     const block = blocks[index];
 
-    if (
-      block.type === "bulleted_list_item" ||
-      block.type === "numbered_list_item"
-    ) {
-      const { items, nextIndex } = collectListItems(blocks, index, block.type);
-      nodes.push(renderList(items, block.type));
+    if (groupedBlockTypes.has(block.type)) {
+      const type = block.type as GroupedBlockType;
+      const { items, nextIndex } = collectGroup(blocks, index, type);
+      nodes.push(renderGroup(items, type));
       index = nextIndex;
       continue;
     }
 
-    const text = getBlockText(block);
-
-    if (!text && block.type !== "divider") {
-      index += 1;
-      continue;
-    }
-
-    switch (block.type) {
-      case "heading_1":
-        nodes.push(<h2 key={block.id}>{text}</h2>);
-        break;
-      case "heading_2":
-        nodes.push(<h3 key={block.id}>{text}</h3>);
-        break;
-      case "heading_3":
-        nodes.push(<h4 key={block.id}>{text}</h4>);
-        break;
-      case "quote":
-        nodes.push(<blockquote key={block.id}>{text}</blockquote>);
-        break;
-      case "callout":
-        nodes.push(
-          <div className="article-callout" key={block.id}>
-            {text}
-          </div>,
-        );
-        break;
-      case "divider":
-        nodes.push(<hr key={block.id} />);
-        break;
-      default:
-        nodes.push(<p key={block.id}>{text}</p>);
-        break;
-    }
-
+    nodes.push(renderBlock(block));
     index += 1;
   }
 
   return nodes;
-};
+}
 
 export function PostRichContent({
-  blocks,
-  fallbackContent,
+  blocks = [],
+  content = [],
   emptyMessage = "Content coming soon.",
 }: PostRichContentProps) {
   if (blocks.length > 0) {
     return <>{renderBlocks(blocks)}</>;
   }
 
-  const fallbackParagraphs = getFallbackParagraphs(fallbackContent);
+  const paragraphs = splitRichTextParagraphs(content);
 
-  if (fallbackParagraphs.length > 0) {
+  if (paragraphs.length > 0) {
     return (
       <>
-        {fallbackParagraphs.map((paragraph, index) => (
-          <p key={`${index}-${paragraph.slice(0, 16)}`}>{paragraph}</p>
+        {paragraphs.map((paragraph, index) => (
+          <p key={index}>
+            <RichText items={paragraph} />
+          </p>
         ))}
       </>
     );
@@ -140,4 +417,3 @@ export function PostRichContent({
 
   return <p>{emptyMessage}</p>;
 }
-

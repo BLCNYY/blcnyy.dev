@@ -4,6 +4,26 @@ import {
   type Language,
 } from "@/lib/languages";
 
+export type NotionRichText = {
+  plain_text: string;
+  href?: string | null;
+  annotations?: {
+    bold?: boolean;
+    italic?: boolean;
+    strikethrough?: boolean;
+    underline?: boolean;
+    code?: boolean;
+  };
+};
+
+export type ArticleVersion = {
+  language: Language | null;
+  title: string;
+  summary: string;
+  content: NotionRichText[];
+  contentPropertyId: string | null;
+};
+
 export type NotionPost = {
   id: string;
   title: string;
@@ -16,33 +36,44 @@ export type NotionPost = {
   originalSource: string;
   originalUrl: string;
   displayLanguage: Language | null;
+  versions: ArticleVersion[];
+};
+
+export type NotionBlockContent = {
+  rich_text?: NotionRichText[];
+  caption?: NotionRichText[];
+  checked?: boolean;
+  language?: string;
+  url?: string;
+  type?: "external" | "file";
+  external?: { url?: string };
+  file?: { url?: string };
 };
 
 export type NotionBlock = {
   id: string;
   type: string;
-  paragraph?: { rich_text: { plain_text: string }[] };
-  heading_1?: { rich_text: { plain_text: string }[] };
-  heading_2?: { rich_text: { plain_text: string }[] };
-  heading_3?: { rich_text: { plain_text: string }[] };
-  bulleted_list_item?: { rich_text: { plain_text: string }[] };
-  numbered_list_item?: { rich_text: { plain_text: string }[] };
-  quote?: { rich_text: { plain_text: string }[] };
-  callout?: { rich_text: { plain_text: string }[] };
-};
+  has_children?: boolean;
+  children?: NotionBlock[];
+} & Record<string, unknown>;
 
-type NotionTextItem = { plain_text: string };
 type NotionQueryResponse = { results: NotionPage[] };
 type NotionBlockChildrenResponse = {
   results: NotionBlock[];
   has_more?: boolean;
   next_cursor?: string | null;
 };
+type NotionPropertyItemResponse = {
+  results: { rich_text?: NotionRichText }[];
+  has_more?: boolean;
+  next_cursor?: string | null;
+};
 
 type NotionProperty = {
+  id?: string;
   checkbox?: boolean;
-  title?: NotionTextItem[];
-  rich_text?: NotionTextItem[];
+  title?: NotionRichText[];
+  rich_text?: NotionRichText[];
   select?: { name?: string };
   multi_select?: { name?: string }[];
   url?: string;
@@ -56,6 +87,9 @@ type NotionPage = {
 
 const NOTION_VERSION = "2022-06-28";
 const NOTION_REVALIDATE_SECONDS = 60;
+// Notion truncates rich text property values to 25 items in query results.
+const NOTION_PROPERTY_ITEM_LIMIT = 25;
+const MAX_BLOCK_DEPTH = 3;
 
 const propertyMap = Object.fromEntries(
   languageOptions.map(({ value, short }) => [
@@ -68,7 +102,7 @@ const propertyMap = Object.fromEntries(
   ]),
 ) as Record<Language, { title: string; summary: string; content: string }>;
 
-const toPlainText = (value?: NotionTextItem[]) =>
+export const toPlainText = (value?: readonly NotionRichText[]) =>
   value?.map((item) => item.plain_text).join("").trim() ?? "";
 
 const isNonEmptyString = (value: string | undefined): value is string =>
@@ -162,36 +196,63 @@ const toLanguage = (value?: string): Language | null => {
   );
 };
 
-const resolveContent = (properties: Record<string, NotionProperty>) => {
-  for (const language of preferredContentLanguages) {
+const resolveVersions = (
+  properties: Record<string, NotionProperty>,
+): ArticleVersion[] => {
+  const versions = preferredContentLanguages.flatMap((language) => {
     const props = propertyMap[language];
     const title = toPlainTextTitle(properties[props.title]);
     const summary = getPropertyText(properties, [props.summary, "Summary"]);
-    const content = toPlainText(properties[props.content]?.rich_text);
+    const contentProperty = properties[props.content];
+    const content = contentProperty?.rich_text ?? [];
 
-    if (title || summary || content) {
-      return { displayLanguage: language, title, summary, content };
+    if (!title && !summary && !toPlainText(content)) {
+      return [];
     }
+
+    return [
+      {
+        language,
+        title,
+        summary,
+        content,
+        contentPropertyId: contentProperty?.id ?? null,
+      },
+    ];
+  });
+
+  if (versions.length) {
+    return versions;
   }
 
-  return {
-    displayLanguage: null,
-    title: getPropertyText(properties, ["Title", "Name"]),
-    summary: getPropertyText(properties, ["Summary", "Description"]),
-    content: getPropertyText(properties, ["Content", "Body"]),
-  };
+  const contentKey = ["Content", "Body"].find((key) =>
+    toPlainText(properties[key]?.rich_text),
+  );
+
+  return [
+    {
+      language: null,
+      title: getPropertyText(properties, ["Title", "Name"]),
+      summary: getPropertyText(properties, ["Summary", "Description"]),
+      content: contentKey ? (properties[contentKey]?.rich_text ?? []) : [],
+      contentPropertyId: contentKey
+        ? (properties[contentKey]?.id ?? null)
+        : null,
+    },
+  ];
 };
 
 const mapPageToPost = (page: NotionPage): NotionPost => {
-  const resolved = resolveContent(page.properties);
+  const versions = resolveVersions(page.properties);
+  const primary = versions[0];
 
   return {
     id: page.id,
-    title: resolved.title || "Untitled",
-    summary: resolved.summary,
+    title: primary.title || "Untitled",
+    summary: primary.summary,
     date: page.properties.Date?.date?.start ?? null,
     slug: toPlainText(page.properties.Slug?.rich_text) || page.id,
-    content: resolved.content,
+    content: toPlainText(primary.content),
     tags: getPropertyMultiSelect(page.properties, [
       "Tags",
       "Tag",
@@ -203,7 +264,8 @@ const mapPageToPost = (page: NotionPage): NotionPost => {
     ),
     originalSource: getPropertyText(page.properties, ["Original Source"]),
     originalUrl: getPropertyUrl(page.properties, ["Original URL"]),
-    displayLanguage: resolved.displayLanguage,
+    displayLanguage: primary.language,
+    versions,
   };
 };
 
@@ -216,22 +278,23 @@ const createNotionHeaders = (
   ...(includeJsonContentType ? { "Content-Type": "application/json" } : {}),
 });
 
+// Throws on failure so an incremental revalidation keeps serving the last
+// good page instead of caching fallback content or a 404.
 const fetchNotionJson = async <T>(
   input: string,
   init: RequestInit,
-): Promise<T | null> => {
-  try {
-    const response = await fetch(input, init);
+): Promise<T> => {
+  const response = await fetch(input, init);
 
-    if (!response.ok) {
-      return null;
-    }
-
-    return (await response.json()) as T;
-  } catch {
-    return null;
+  if (!response.ok) {
+    throw new Error(`Notion request failed with status ${response.status}`);
   }
+
+  return (await response.json()) as T;
 };
+
+export const isNotionConfigured = () =>
+  Boolean(process.env.NOTION_TOKEN && process.env.NOTION_DATABASE_ID);
 
 const queryDatabase = async (body: Record<string, unknown>) => {
   const token = process.env.NOTION_TOKEN;
@@ -264,6 +327,70 @@ export const fetchPosts = async (): Promise<NotionPost[]> => {
   return data?.results.map(mapPageToPost) ?? [];
 };
 
+const fetchFullRichTextProperty = async (
+  token: string,
+  pageId: string,
+  propertyId: string,
+) => {
+  let cursor: string | null = null;
+  const items: NotionRichText[] = [];
+
+  do {
+    const url = new URL(
+      `https://api.notion.com/v1/pages/${pageId}/properties/${encodeURIComponent(propertyId)}`,
+    );
+
+    if (cursor) {
+      url.searchParams.set("start_cursor", cursor);
+    }
+
+    const data: NotionPropertyItemResponse =
+      await fetchNotionJson<NotionPropertyItemResponse>(url.toString(), {
+        headers: createNotionHeaders(token),
+        next: { revalidate: NOTION_REVALIDATE_SECONDS },
+      });
+
+    items.push(
+      ...data.results
+        .map((result) => result.rich_text)
+        .filter((item): item is NotionRichText => Boolean(item)),
+    );
+    cursor = data.has_more ? (data.next_cursor ?? null) : null;
+  } while (cursor);
+
+  return items;
+};
+
+const withFullContent = async (post: NotionPost): Promise<NotionPost> => {
+  const token = process.env.NOTION_TOKEN;
+
+  if (!token) {
+    return post;
+  }
+
+  const versions = await Promise.all(
+    post.versions.map(async (version) =>
+      version.contentPropertyId &&
+      version.content.length >= NOTION_PROPERTY_ITEM_LIMIT
+        ? {
+            ...version,
+            content: await fetchFullRichTextProperty(
+              token,
+              post.id,
+              version.contentPropertyId,
+            ),
+          }
+        : version,
+    ),
+  );
+
+  return {
+    ...post,
+    content: toPlainText(versions[0]?.content),
+    versions,
+  };
+};
+
 export const fetchPostBySlug = async (
   slug: string,
 ): Promise<NotionPost | null> => {
@@ -278,7 +405,51 @@ export const fetchPostBySlug = async (
   });
 
   const page = data?.results[0];
-  return page ? mapPageToPost(page) : null;
+  return page ? withFullContent(mapPageToPost(page)) : null;
+};
+
+const fetchBlockChildren = async (
+  token: string,
+  blockId: string,
+  depth: number,
+): Promise<NotionBlock[]> => {
+  let cursor: string | null = null;
+  const blocks: NotionBlock[] = [];
+
+  do {
+    const url = new URL(
+      `https://api.notion.com/v1/blocks/${blockId}/children`,
+    );
+    url.searchParams.set("page_size", "100");
+
+    if (cursor) {
+      url.searchParams.set("start_cursor", cursor);
+    }
+
+    const data: NotionBlockChildrenResponse =
+      await fetchNotionJson<NotionBlockChildrenResponse>(url.toString(), {
+        headers: createNotionHeaders(token),
+        next: { revalidate: NOTION_REVALIDATE_SECONDS },
+      });
+
+    blocks.push(...(data.results ?? []));
+    cursor = data.has_more ? (data.next_cursor ?? null) : null;
+  } while (cursor);
+
+  if (depth >= MAX_BLOCK_DEPTH) {
+    return blocks;
+  }
+
+  return Promise.all(
+    blocks.map(async (block) =>
+      block.has_children
+        ? {
+            ...block,
+            children: await fetchBlockChildren(token, block.id, depth + 1),
+          }
+        : block,
+    ),
+  );
 };
 
 export const fetchPostBlocks = async (
@@ -290,35 +461,5 @@ export const fetchPostBlocks = async (
     return [];
   }
 
-  let cursor: string | null = null;
-  const blocks: NotionBlock[] = [];
-
-  do {
-    const url = new URL(
-      `https://api.notion.com/v1/blocks/${pageId}/children`,
-    );
-    url.searchParams.set("page_size", "100");
-
-    if (cursor) {
-      url.searchParams.set("start_cursor", cursor);
-    }
-
-    const data = await fetchNotionJson<NotionBlockChildrenResponse>(
-      url.toString(),
-      {
-        headers: createNotionHeaders(token),
-        next: { revalidate: NOTION_REVALIDATE_SECONDS },
-      },
-    );
-
-    if (!data) {
-      break;
-    }
-
-    blocks.push(...(data.results ?? []));
-    cursor = data.has_more ? (data.next_cursor ?? null) : null;
-  } while (cursor);
-
-  return blocks;
+  return fetchBlockChildren(token, pageId, 1);
 };
-

@@ -18,6 +18,8 @@ export type ArticlePreview = {
   tags: string[];
 };
 
+export const exploreTagline = "Vibe-coder and tech enthusiast from day one";
+
 export const exploreStory = {
   heading: "Technology has always been part of how I explore.",
   body:
@@ -98,8 +100,8 @@ const fallbackArticles: ArticlePreview[] = [
   },
 ];
 
-export function getArticlePreviews(posts: readonly NotionPost[]) {
-  const source = posts.length
+export function toArticlePreviews(posts: readonly NotionPost[]): ArticlePreview[] {
+  return posts.length
     ? posts.map(({ id, title, summary, date, slug, tags }) => ({
         id,
         title,
@@ -109,6 +111,16 @@ export function getArticlePreviews(posts: readonly NotionPost[]) {
         tags,
       }))
     : fallbackArticles;
+}
 
-  return source.slice(0, 5);
+export function getArticlePreviews(posts: readonly NotionPost[]) {
+  return toArticlePreviews(posts).slice(0, 5);
+}
+
+export function getFallbackArticle(slug: string) {
+  return fallbackArticles.find((article) => article.slug === slug) ?? null;
+}
+
+export function getFallbackArticleSlugs() {
+  return fallbackArticles.map(({ slug }) => slug);
 }

@@ -2,29 +2,35 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { formatIsoDate } from "@/lib/date";
-import { getArticlePreviews } from "@/lib/explore-content";
+import { toArticlePreviews } from "@/lib/explore-content";
 import { fetchPosts } from "@/lib/notion";
+import { baseOpenGraph } from "@/lib/site";
+
+const title = "Articles";
+const description = "Writing by Ömer Balkan about technology, AI, and life.";
 
 export const metadata: Metadata = {
-  title: "Articles",
-  description: "Writing by Ömer Balkan about technology, AI, and life.",
+  title,
+  description,
   alternates: {
     canonical: "/blog",
+  },
+  openGraph: {
+    ...baseOpenGraph,
+    type: "website",
+    url: "/blog",
+    title: `${title} | BLCNYY`,
+    description,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${title} | BLCNYY`,
+    description,
   },
 };
 
 export default async function BlogPage() {
-  const posts = await fetchPosts();
-  const articles = posts.length
-    ? posts.map(({ id, title, summary, date, slug, tags }) => ({
-        id,
-        title,
-        summary,
-        date,
-        slug,
-        tags,
-      }))
-    : getArticlePreviews(posts);
+  const articles = toArticlePreviews(await fetchPosts());
 
   return (
     <main className="reading-page article-index-page">
@@ -35,22 +41,27 @@ export default async function BlogPage() {
       </header>
 
       <div className="article-index-grid">
-        {articles.map((article, index) => (
-          <Link
-            key={article.id}
-            href={`/blog/${article.slug}`}
-            className={`article-index-card ${index === 0 ? "is-latest" : ""}`}
-          >
-            <div className="article-preview-meta">
-              <span>{index === 0 ? "Latest" : formatIsoDate(article.date)}</span>
-              <span aria-hidden="true">↗</span>
-            </div>
-            <h2>{article.title}</h2>
-            {article.summary ? <p>{article.summary}</p> : null}
-          </Link>
-        ))}
+        {articles.map((article, index) => {
+          const date = formatIsoDate(article.date);
+
+          return (
+            <Link
+              key={article.id}
+              href={`/blog/${article.slug}`}
+              className={`article-index-card ${index === 0 ? "is-latest" : ""}`}
+            >
+              <div className="article-preview-meta">
+                <span>
+                  {index === 0 ? ["Latest", date].filter(Boolean).join(" · ") : date}
+                </span>
+                <span aria-hidden="true">→</span>
+              </div>
+              <h2>{article.title}</h2>
+              {article.summary ? <p>{article.summary}</p> : null}
+            </Link>
+          );
+        })}
       </div>
     </main>
   );
 }
-

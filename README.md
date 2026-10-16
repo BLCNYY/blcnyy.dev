@@ -2,12 +2,13 @@
 
 The personal website for Ömer Balkan, built with Next.js.
 
-The site has two primary experiences:
+The top navigation has three items:
 
 - **Explore** is a six-scene profile controlled by wheel, trackpad, touch, or keyboard input.
-- **Ask** is an AI profile grounded in the public information stored in the codebase and powered by OpenRouter.
+- **Writing** lists every article. Articles load from Notion and can be read in any language that has a `Content (XX)` property.
+- **Ask** is an AI profile grounded in the public information stored in the codebase and powered by OpenRouter. It keeps the last few turns for follow-up questions and can read answers aloud.
 
-Published articles are loaded from Notion. A small built-in preview set keeps the Explore article grid populated when Notion is unavailable.
+When the Notion variables are missing, a small built-in preview set keeps the Explore article grid populated and each preview opens a short placeholder page. When Notion is configured but a request fails, the error is thrown so incremental revalidation keeps serving the last good page.
 
 ## Local setup
 
@@ -26,17 +27,21 @@ Open [http://localhost:3000](http://localhost:3000).
 
 - `/` — Explore
 - `/ask` — AI profile
-- `/blog` — all articles
-- `/blog/[slug]` — article reader
+- `/blog` — all articles (Writing)
+- `/blog/[slug]` — article reader with a language switcher (`?lang=tr` opens a specific language)
+- `/sitemap.xml` and `/robots.txt` — generated from the published articles
 
 ## Main files
 
 - `src/components/explore-experience.tsx` — discrete scene navigation and content presentation
-- `src/components/site-navigation.tsx` — shared Explore / Ask navigation
+- `src/components/site-navigation.tsx` — shared Explore / Writing / Ask navigation
+- `src/components/article-reader.tsx` — article header and language switcher
+- `src/components/post-rich-content.tsx` — Notion rich text and block rendering
 - `src/components/chat-shell.tsx` — Ask interface
 - `src/lib/blcnyy-profile.ts` — public profile facts used by the AI
 - `src/lib/explore-content.ts` — curated Explore story, projects, and article fallbacks
 - `src/lib/notion.ts` — Notion article loading
+- `src/lib/site.ts` — canonical URL, social links, and shared metadata
 
 ## Environment variables
 
@@ -49,6 +54,7 @@ OPENROUTER_SITE_URL=http://localhost:3000
 OPENROUTER_SITE_NAME=BLCNYY
 PROFILE_PRIVATE_CONTEXT=
 PROFILE_BIRTH_DATE=
+ANSWER_SIGNING_SECRET=
 NOTION_TOKEN=your-token-here
 NOTION_DATABASE_ID=your-database-id-here
 ```
@@ -57,6 +63,7 @@ Only `OPENROUTER_API_KEY` is required for Ask. The Notion variables are required
 
 - `PROFILE_PRIVATE_CONTEXT` — Optional plain text appended under "Additional Profile Context" for the assistant; these facts may appear in Ask answers.
 - `PROFILE_BIRTH_DATE` — Optional birth date in `YYYY-MM-DD` format, used to calculate the profile owner's current age.
+- `ANSWER_SIGNING_SECRET` — Optional secret for signing Ask answers. Only signed answers can be read aloud or sent back as follow-up context. When unset, a key derived from `OPENROUTER_API_KEY` is used.
 
 Set these profile variables on your deployment or in an uncommitted `.env.local` file.
 
