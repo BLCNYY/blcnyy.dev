@@ -1,10 +1,28 @@
 import type { MetadataRoute } from "next";
 
 import { toArticlePreviews } from "@/lib/explore-content";
+import { localizePath, locales } from "@/lib/i18n";
 import { fetchPosts } from "@/lib/notion";
 import { absoluteUrl } from "@/lib/site";
 
 export const revalidate = 3600;
+
+type SitemapEntry = MetadataRoute.Sitemap[number];
+
+function localizedEntries(
+  path: string,
+  entry: Omit<SitemapEntry, "url" | "alternates">,
+): MetadataRoute.Sitemap {
+  const languages = Object.fromEntries(
+    locales.map((locale) => [locale, absoluteUrl(localizePath(locale, path))]),
+  );
+
+  return locales.map((locale) => ({
+    ...entry,
+    url: absoluteUrl(localizePath(locale, path)),
+    alternates: { languages },
+  }));
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const posts = await fetchPosts();
@@ -13,28 +31,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const latestArticleDate = articles[0]?.date ?? undefined;
 
   return [
-    {
-      url: absoluteUrl("/"),
+    ...localizedEntries("/", {
       lastModified: latestArticleDate,
       changeFrequency: "weekly",
       priority: 1,
-    },
-    {
-      url: absoluteUrl("/blog"),
+    }),
+    ...localizedEntries("/blog", {
       lastModified: latestArticleDate,
       changeFrequency: "weekly",
       priority: 0.8,
-    },
-    {
-      url: absoluteUrl("/ask"),
+    }),
+    ...localizedEntries("/ask", {
       changeFrequency: "monthly",
       priority: 0.6,
-    },
-    ...articles.map((article) => ({
-      url: absoluteUrl(`/blog/${article.slug}`),
-      lastModified: article.date ?? undefined,
-      changeFrequency: "yearly" as const,
-      priority: 0.7,
-    })),
+    }),
+    ...articles.flatMap((article) =>
+      localizedEntries(`/blog/${article.slug}`, {
+        lastModified: article.date ?? undefined,
+        changeFrequency: "yearly",
+        priority: 0.7,
+      }),
+    ),
   ];
 }

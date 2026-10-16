@@ -73,12 +73,16 @@ html.explore-locked body {
   z-index: 100;
   top: max(20px, env(safe-area-inset-top));
   left: 50%;
-  width: min(372px, calc(100vw - 32px));
+  display: flex;
+  gap: 8px;
+  width: min(438px, calc(100vw - 32px));
   transform: translateX(-50%);
 }
 
 .site-mode-control {
   position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   height: 58px;
@@ -140,7 +144,38 @@ html.explore-locked body {
   color: #ffffff;
 }
 
+.site-language-link {
+  display: grid;
+  flex: 0 0 auto;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.88);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.72);
+  font-family: var(--font-mono), "SFMono-Regular", monospace;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  transition:
+    color 200ms ease,
+    border-color 200ms ease;
+}
+
+.site-language-link:hover {
+  border-color: rgba(255, 138, 31, 0.45);
+  color: #ffffff;
+}
+
 .site-mode-link:focus-visible,
+.site-language-link:focus-visible,
 .scene-progress button:focus-visible,
 .scene-advance:focus-visible,
 .ask-depth-button:focus-visible,
@@ -424,6 +459,139 @@ html.explore-locked body {
 
 .project-summary {
   margin-top: clamp(1rem, 2.5vh, 1.75rem);
+}
+
+.project-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: clamp(1rem, 2.4vh, 1.5rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-tags li {
+  padding: 0.38rem 0.75rem;
+  border: 1px solid rgba(255, 154, 31, 0.32);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: var(--font-mono), "SFMono-Regular", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+.project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.75rem;
+  margin-top: clamp(1.25rem, 3vh, 2rem);
+}
+
+.project-links .scene-text-link {
+  margin-top: 0;
+}
+
+.instagram-scene-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+  align-items: center;
+  gap: clamp(2rem, 6vw, 5rem);
+  width: min(1080px, 100%);
+}
+
+.instagram-card {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.075),
+    rgba(255, 255, 255, 0.02)
+  );
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  transform: rotate(2deg);
+  transition:
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms ease;
+}
+
+.instagram-card:hover {
+  border-color: rgba(255, 138, 31, 0.4);
+  transform: rotate(0deg) translateY(-4px);
+}
+
+.instagram-card-ring {
+  display: block;
+  width: clamp(96px, 13vh, 132px);
+  aspect-ratio: 1;
+  padding: 4px;
+  border-radius: 999px;
+  background: conic-gradient(
+    from 210deg,
+    #feda75,
+    #fa7e1e,
+    #d62976,
+    #962fbf,
+    #4f5bd5,
+    #feda75
+  );
+}
+
+.instagram-card-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 3px solid #0b0b0b;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.instagram-card-handle {
+  margin-top: 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.instagram-card-platform {
+  color: rgba(255, 255, 255, 0.56);
+  font-family: var(--font-mono), "SFMono-Regular", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.instagram-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.instagram-card-tags span {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-mono), "SFMono-Regular", monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+}
+
+.instagram-card-follow {
+  margin-top: 0.4rem;
+  padding: 0.6rem 1.5rem;
+  border-radius: 999px;
+  background: linear-gradient(105deg, #ff4d00, #ff7a00 48%, #ffb000);
+  color: #160a00;
+  font-size: 0.9rem;
+  font-weight: 650;
 }
 
 .scene-text-link {
@@ -1413,15 +1581,51 @@ html.explore-locked body {
 @media (max-width: 760px) {
   .site-mode-nav {
     top: max(14px, calc(env(safe-area-inset-top) + 6px));
-    width: min(340px, calc(100vw - 28px));
+    gap: 6px;
+    width: min(400px, calc(100vw - 28px));
   }
 
   .site-mode-control {
     height: 52px;
   }
 
+  .site-language-link {
+    width: 52px;
+    height: 52px;
+  }
+
+  .instagram-scene-copy {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .instagram-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: start;
+    align-items: center;
+    gap: 0.15rem 1rem;
+    padding: 1rem 1.15rem;
+    border-radius: 22px;
+    transform: none;
+  }
+
+  .instagram-card-ring {
+    grid-row: span 2;
+    width: 64px;
+  }
+
+  .instagram-card-handle {
+    margin-top: 0;
+    font-size: 1.1rem;
+  }
+
+  .instagram-card-tags,
+  .instagram-card-follow {
+    display: none;
+  }
+
   .site-mode-link {
-    font-size: 0.92rem;
+    font-size: 0.9rem;
   }
 
   .explore-scene {
@@ -1585,6 +1789,10 @@ html.explore-locked body {
     height: 390px;
   }
 
+  .instagram-card-ring {
+    width: 88px;
+  }
+
   .scene-body {
     margin-top: 1.25rem;
   }
@@ -1631,6 +1839,12 @@ html.explore-locked body {
   }
 }
 
+@media (max-height: 640px) {
+  .instagram-card {
+    display: none;
+  }
+}
+
 @media (max-width: 420px) {
   .ask-composer {
     gap: 0.5rem;
@@ -1666,6 +1880,15 @@ html.explore-locked body {
 
   .site-mode-control {
     height: 52px;
+  }
+
+  .site-language-link {
+    width: 52px;
+    height: 52px;
+  }
+
+  .instagram-card {
+    display: none;
   }
 
   .explore-scene {
@@ -1762,8 +1985,15 @@ html.explore-locked body {
   .article-pointer-stroke,
   .article-index-card,
   .identity-links a,
-  .article-language-switcher button {
+  .article-language-switcher button,
+  .site-language-link,
+  .instagram-card {
     transition-duration: 1ms;
+  }
+
+  .instagram-card,
+  .instagram-card:hover {
+    transform: none;
   }
 
   .explore-scene,

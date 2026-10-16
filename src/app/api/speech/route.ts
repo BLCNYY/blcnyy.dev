@@ -4,7 +4,8 @@ import { isValidAnswerSignature } from "@/lib/answer-signature";
 import { MAX_CHAT_HISTORY_ANSWER_LENGTH } from "@/lib/limits";
 import { buildOpenRouterHeaders } from "@/lib/openrouter";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { isCrossSiteRequest } from "@/lib/request-guard";
+import { getDictionary } from "@/lib/dictionaries";
+import { getRequestLocale, isCrossSiteRequest } from "@/lib/request-guard";
 
 const DEFAULT_OPENROUTER_TTS_MODEL = "google/gemini-3.1-flash-tts-preview";
 const DEFAULT_OPENROUTER_TTS_VOICE = "Zephyr";
@@ -15,15 +16,12 @@ const SPEECH_RATE_LIMIT = {
   limit: 8,
   windowMs: 60_000,
 };
-const FRIENDLY_SPEECH_ERROR =
-  "I couldn't generate speech for that answer. Please try again in a moment.";
 
 export async function POST(request: Request) {
+  const messages = getDictionary(getRequestLocale(request)).api;
+
   if (isCrossSiteRequest(request)) {
-    return NextResponse.json(
-      { error: "Requests from other sites are not allowed." },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: messages.crossSite }, { status: 403 });
   }
 
   const rateLimit = checkRateLimit(request, SPEECH_RATE_LIMIT);
@@ -31,8 +29,7 @@ export async function POST(request: Request) {
   if (!rateLimit.allowed) {
     return NextResponse.json(
       {
-        error:
-          "Too many spoken-answer requests from this connection. Please wait a bit and try again.",
+        error: messages.tooManySpeech,
       },
       { status: 429, headers: rateLimit.headers },
     );
@@ -44,7 +41,7 @@ export async function POST(request: Request) {
     payload = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Send JSON with a text field." },
+      { error: messages.badSpeechJson },
       { status: 400, headers: rateLimit.headers },
     );
   }
@@ -60,7 +57,7 @@ export async function POST(request: Request) {
   if (rawText.length > MAX_SPEECH_TEXT_LENGTH) {
     return NextResponse.json(
       {
-        error: `Please keep the text to ${MAX_SPEECH_TEXT_LENGTH} characters or fewer.`,
+        error: messages.speechTooLong(MAX_SPEECH_TEXT_LENGTH),
       },
       { status: 400, headers: rateLimit.headers },
     );
@@ -70,7 +67,7 @@ export async function POST(request: Request) {
 
   if (!text) {
     return NextResponse.json(
-      { error: "There is no answer text to speak yet." },
+      { error: messages.emptySpeech },
       { status: 400, headers: rateLimit.headers },
     );
   }
@@ -83,8 +80,7 @@ export async function POST(request: Request) {
   if (!isValidAnswerSignature(text, signature)) {
     return NextResponse.json(
       {
-        error:
-          "Only answers from Ask can be read aloud. Ask the question again to hear it.",
+        error: messages.unsignedSpeech,
       },
       { status: 403, headers: rateLimit.headers },
     );
@@ -95,8 +91,7 @@ export async function POST(request: Request) {
   if (!apiKey) {
     return NextResponse.json(
       {
-        error:
-          "Speech is not configured yet. Add OPENROUTER_API_KEY on the server.",
+        error: messages.speechNotConfigured,
       },
       { status: 500, headers: rateLimit.headers },
     );
@@ -119,7 +114,7 @@ export async function POST(request: Request) {
     if (!response.ok) {
       return NextResponse.json(
         {
-          error: FRIENDLY_SPEECH_ERROR,
+          error: messages.speechError,
         },
         { status: response.status, headers: rateLimit.headers },
       );
@@ -143,7 +138,7 @@ export async function POST(request: Request) {
     return new Response(audio, { headers });
   } catch {
     return NextResponse.json(
-      { error: FRIENDLY_SPEECH_ERROR },
+      { error: messages.speechError },
       { status: 502, headers: rateLimit.headers },
     );
   }

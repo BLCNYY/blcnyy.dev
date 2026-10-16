@@ -2,9 +2,9 @@
 
 The personal website for Ömer Balkan, built with Next.js.
 
-The top navigation has three items:
+The site is available in English (at the root) and Turkish (under `/tr`); the EN/TR button next to the navigation switches between the same page in each language. The top navigation has three items:
 
-- **Explore** is a six-scene profile controlled by wheel, trackpad, touch, or keyboard input.
+- **Explore** is a scene-based profile controlled by wheel, trackpad, touch, or keyboard input: identity, introduction, story, one scene per project (Duly, Salah[Now]), Instagram, latest articles, and Ask.
 - **Writing** lists every article. Articles load from Notion and can be read in any language that has a `Content (XX)` property.
 - **Ask** is an AI profile grounded in the public information stored in the codebase and powered by OpenRouter. It keeps the last few turns for follow-up questions and can read answers aloud.
 
@@ -25,10 +25,10 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Routes
 
-- `/` — Explore
-- `/ask` — AI profile
-- `/blog` — all articles (Writing)
-- `/blog/[slug]` — article reader with a language switcher (`?lang=tr` opens a specific language)
+- `/` and `/tr` — Explore
+- `/ask` and `/tr/ask` — AI profile (answers in Turkish on the Turkish site)
+- `/blog` and `/tr/blog` — all articles (Writing)
+- `/blog/[slug]` and `/tr/blog/[slug]` — article reader that opens in the site language when available, with a language switcher (`?lang=tr` opens a specific language)
 - `/sitemap.xml` and `/robots.txt` — generated from the published articles
 
 ## Main files
@@ -39,7 +39,10 @@ Open [http://localhost:3000](http://localhost:3000).
 - `src/components/post-rich-content.tsx` — Notion rich text and block rendering
 - `src/components/chat-shell.tsx` — Ask interface
 - `src/lib/blcnyy-profile.ts` — public profile facts used by the AI
-- `src/lib/explore-content.ts` — curated Explore story, projects, and article fallbacks
+- `src/lib/explore-content.ts` — English and Turkish Explore story, projects, and article fallbacks
+- `src/lib/dictionaries.ts` — English and Turkish interface strings
+- `src/lib/i18n.ts` — locale helpers (`localizePath`, `hreflang` alternates)
+- `src/components/pages/` — page components shared by the English and Turkish routes
 - `src/lib/notion.ts` — Notion article loading
 - `src/lib/site.ts` — canonical URL, social links, and shared metadata
 

@@ -16,6 +16,10 @@ export type ArticleReaderVersion = {
 
 type ArticleReaderProps = {
   dateLabel: string;
+  labels: {
+    languageGroup: string;
+    original: string;
+  };
   source: ReactNode;
   tags: readonly string[];
   versions: readonly ArticleReaderVersion[];
@@ -25,6 +29,7 @@ const LANGUAGE_QUERY_KEY = "lang";
 
 export function ArticleReader({
   dateLabel,
+  labels,
   source,
   tags,
   versions,
@@ -91,16 +96,20 @@ export function ArticleReader({
           <div
             className="article-language-switcher"
             role="group"
-            aria-label="Article language"
+            aria-label={labels.languageGroup}
           >
             {versions.map((version) => (
               <button
                 key={version.id}
                 type="button"
                 lang={version.lang ?? undefined}
-                aria-label={`${version.label}${version.isOriginal ? " (original)" : ""}`}
+                aria-label={`${version.label}${version.isOriginal ? ` (${labels.original})` : ""}`}
                 aria-pressed={version.id === active.id}
-                title={version.isOriginal ? `${version.label} · original` : version.label}
+                title={
+                  version.isOriginal
+                    ? `${version.label} · ${labels.original}`
+                    : version.label
+                }
                 onClick={() => selectVersion(version.id)}
               >
                 {version.short}

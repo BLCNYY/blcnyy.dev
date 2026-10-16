@@ -1,3 +1,5 @@
+import { isLocale, type Locale } from "@/lib/i18n";
+
 // Rejects browser requests sent from other sites. Requests without these
 // headers (curl, server-to-server) still pass, so this only blocks other
 // websites from spending the API budget through visitors' browsers.
@@ -22,4 +24,10 @@ export function isCrossSiteRequest(request: Request) {
   } catch {
     return true;
   }
+}
+
+export function getRequestLocale(request: Request): Locale {
+  const locale = request.headers.get("x-site-locale");
+
+  return isLocale(locale) ? locale : "en";
 }

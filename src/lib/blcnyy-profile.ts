@@ -11,7 +11,7 @@ export const profile = {
     summary:
       "Ömer Balkan is a student builder from İstanbul creating at the intersection of AI, design, and internet products.",
     shortBio:
-      "He shares ideas publicly, experiments with emerging tools, and builds practical projects like Salah[Now] and blcnyy.dev.",
+      "He shares ideas publicly, experiments with emerging tools, and builds practical projects like Duly, Salah[Now], and blcnyy.dev.",
     longerBio:
       "Ömer Balkan is a young internet-native builder from İstanbul, Türkiye, known for his interest in AI, product design, and practical software. As a student, he has built a public identity around exploring new tools early, sharing product thoughts online, and using AI-assisted workflows to turn ideas into real projects.",
     currentFocus:
@@ -43,6 +43,7 @@ export const profile = {
     "He has publicly shared that Sam Altman follows him on X.",
     "He has also publicly shared that Elon Musk interacted with his content in the past.",
     "His X profile is https://x.com/BLCNYY (@BLCNYY).",
+    "As of October 2026, he has recently started making tech and AI content in Turkish on Instagram as @blcnyy (https://www.instagram.com/blcnyy/).",
   ],
   contentStyle: [
     "Reflective",
@@ -147,7 +148,7 @@ export const profile = {
   writingAndPublishing: [
     "He is deeply interested in writing about trending news, AI, and technology.",
     "He has written in both English and Turkish about AI, the digitalizing world, and related tech topics.",
-    "His public writing has included his own Substack newsletter and newspapers published by his school.",
+    "His past public writing included a Substack newsletter, which he no longer uses, and newspapers published by his school.",
     "He publishes articles on the blog at blcnyy.dev/blog.",
   ],
   personalBrandThemes: [
@@ -163,14 +164,33 @@ export const profile = {
   ],
   projects: [
     {
+      name: "Duly",
+      url: "https://useduly.app",
+      summary:
+        "Duly: Life Organizer, an iPhone and iPad app that turns a spoken ramble into reminders, lists, ideas, and notes.",
+      details: [
+        "Tap the orb and talk about whatever is on your mind; Duly sorts it into reminders, lists, ideas, and notes. Typing works too.",
+        "Items can be changed by voice (\"Move it to Friday\", \"Take the milk off\") and changes can be undone.",
+        "You can ask quick questions about your saved items, like what is still on the grocery list or how much you spent this week.",
+        "Every idea gets a sketch with a summary, possible directions, first steps, and open questions.",
+        "It also keeps track of people and birthdays, things to try, who owes whom, spending, habits, and a daily journal.",
+        "Works with the Action Button, Control Center, the Lock Screen, Siri, Shortcuts, and Live Activities in the Dynamic Island.",
+        "Free to use every day with daily limits; Duly Pro adds more daily usage, iCloud Sync, and list sharing.",
+        "Recordings stay on the device; to organize a ramble, its text and relevant saved items are sent to Duly's server and an AI service. No ads.",
+        "Localized in English, Turkish, German, Spanish, French, and Japanese.",
+        "A public beta is open on TestFlight: https://testflight.apple.com/join/kfb4yZDc",
+        "Website: https://useduly.app",
+      ],
+    },
+    {
       name: "blcnyy.dev",
       url: "https://www.blcnyy.dev",
       summary:
-        "Ömer's personal website, with a six-scene Explore experience, an AI profile called Ask, and a Notion-backed blog.",
+        "Ömer's personal website, with a scene-based Explore experience, an AI profile called Ask, and a Notion-backed blog, available in English and Turkish.",
       details: [
         "Built with Next.js.",
-        "The top navigation has three items: Explore, Writing, and Ask.",
-        "Explore at / presents six scenes: identity (with links to X, GitHub, and Substack), introduction, story, Salah[Now], latest articles, and an invitation to Ask.",
+        "The top navigation has three items: Explore, Writing, and Ask, plus an EN/TR button. The Turkish version lives under /tr.",
+        "Explore at / presents scenes for his identity (with links to X, Instagram, and GitHub), introduction, story, Duly, Salah[Now], his Turkish Instagram content, latest articles, and an invitation to Ask.",
         "Ask at /ask is an AI profile grounded in src/lib/blcnyy-profile.ts, where visitors can ask about Ömer's story, work, interests, and projects.",
         "Published writing is available under Writing at /blog.",
         "The blog is Notion-backed, and most articles can be read in English, Turkish, Spanish, German, and Italian.",
@@ -208,7 +228,7 @@ export const profile = {
     website: "https://www.blcnyy.dev",
     x: "https://x.com/BLCNYY",
     github: "https://github.com/BLCNYY",
-    substack: "https://blcnyy.substack.com",
+    instagram: "https://www.instagram.com/blcnyy/",
     sourceCode: "https://github.com/BLCNYY/blcnyy.dev",
     email: "No public email is stored in this profile.",
   },
@@ -225,10 +245,10 @@ export const profile = {
     "He is from İstanbul, Türkiye.",
     "He is a student.",
     "He is interested in tech, AI, design, and building products.",
-    "He has public projects including blcnyy.dev, Salah[Now], and Subzeez.",
+    "He has public projects including Duly, blcnyy.dev, Salah[Now], and Subzeez.",
     "He has built a public online presence around AI and internet products.",
     "He uses AI-assisted workflows to build.",
-    "He shares public thoughts on X.",
+    "He shares public thoughts on X and makes Turkish tech and AI content on Instagram.",
     "He cares about useful, minimal, thoughtful software.",
     "He has a public story involving media appearances and bilingual writing.",
   ],
@@ -269,12 +289,22 @@ export const profile = {
     {
       question: "What projects has he worked on publicly?",
       answer:
-        "Publicly referenced projects include blcnyy.dev, Salah[Now], and Subzeez.",
+        "Publicly referenced projects include Duly, blcnyy.dev, Salah[Now], and Subzeez.",
+    },
+    {
+      question: "What is Duly?",
+      answer:
+        "Duly is Ömer's iPhone and iPad app (Duly: Life Organizer). You tap the orb and ramble, and it turns what you said into reminders, lists, ideas, and notes that you can also edit by voice. Learn more at https://useduly.app.",
+    },
+    {
+      question: "How can I try Duly?",
+      answer:
+        "Duly has a public beta on TestFlight. Open https://testflight.apple.com/join/kfb4yZDc on an iPhone or iPad to join.",
     },
     {
       question: "What is blcnyy.dev?",
       answer:
-        "It is Ömer's personal website at https://www.blcnyy.dev, built with Next.js. Explore at / presents his profile across six scenes, Writing at /blog publishes his Notion-backed articles in up to five languages, and Ask at /ask answers questions using the facts in this profile.",
+        "It is Ömer's personal website at https://www.blcnyy.dev, built with Next.js and available in English and Turkish (at /tr). Explore at / presents his profile across focused scenes, Writing at /blog publishes his Notion-backed articles in up to five languages, and Ask at /ask answers questions using the facts in this profile.",
     },
     {
       question: "What is Salah[Now]?",
@@ -319,7 +349,7 @@ export const profile = {
     {
       question: "Where can I follow him?",
       answer:
-        "He posts on X at https://x.com/BLCNYY, shares code on GitHub at https://github.com/BLCNYY, and has a Substack at https://blcnyy.substack.com. His articles are also at https://www.blcnyy.dev/blog.",
+        "He posts on X at https://x.com/BLCNYY, makes tech and AI content in Turkish on Instagram at https://www.instagram.com/blcnyy/, and shares code on GitHub at https://github.com/BLCNYY. His articles are at https://www.blcnyy.dev/blog.",
     },
     {
       question: "Is this AI actually Ömer?",

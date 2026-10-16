@@ -5,6 +5,8 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { type Dictionary, getDictionary } from "@/lib/dictionaries";
+import type { Locale } from "@/lib/i18n";
 import { MAX_CHAT_MESSAGE_LENGTH } from "@/lib/limits";
 
 type ChatResponse = {
@@ -210,12 +212,6 @@ const RETURNING_USER_STORAGE_KEY = "ask-blcnyy:returning-user";
 const SEARCH_HISTORY_STORAGE_KEY = "ask-blcnyy:search-history";
 const MAX_HISTORY_ITEMS = 5;
 const MAX_CONTEXT_TURNS = 3;
-const SUGGESTED_QUESTIONS = [
-  "Who is Ömer Balkan?",
-  "What is Salah[Now]?",
-  "What does he write about?",
-  "What's his tech setup?",
-] as const;
 const MAX_SPEECH_CACHE_ITEMS = 5;
 const SPEECH_CACHE_DB_NAME = "ask-blcnyy:speech-cache";
 const SPEECH_CACHE_DB_VERSION = 1;
@@ -393,20 +389,23 @@ function getSpeechRecognitionConstructor() {
   );
 }
 
-function getDictationErrorMessage(error?: string) {
+function getDictationErrorMessage(
+  errors: Dictionary["ask"]["errors"],
+  error?: string,
+) {
   if (error === "not-allowed" || error === "service-not-allowed") {
-    return "Microphone access is blocked. Allow microphone access to dictate.";
+    return errors.dictationBlocked;
   }
 
   if (error === "no-speech") {
-    return "I didn't catch any speech. Try the mic again.";
+    return errors.dictationNoSpeech;
   }
 
   if (error === "network") {
-    return "Dictation needs a working speech recognition connection.";
+    return errors.dictationNetwork;
   }
 
-  return "Dictation is unavailable in this browser right now.";
+  return errors.dictationUnavailable;
 }
 
 function readSearchHistory(): SearchHistoryEntry[] {
@@ -625,7 +624,8 @@ async function deletePersistedSpeechAudio(answer: string) {
   });
 }
 
-export function ChatShell() {
+export function ChatShell({ locale }: { locale: Locale }) {
+  const t = getDictionary(locale).ask;
   const [prompt, setPrompt] = useState("");
   const [submittedPrompt, setSubmittedPrompt] = useState("");
   const [answer, setAnswer] = useState("");
@@ -658,7 +658,7 @@ export function ChatShell() {
   const visibleSearchHistory = getLatestSearchHistoryItems(searchHistory);
   const showSearchHistory =
     !showResult && isReturningUser && visibleSearchHistory.length > 0;
-  const dictationStatus = dictationError || (isDictating ? "Listening..." : "");
+  const dictationStatus = dictationError || (isDictating ? t.listening : "");
 
   function clearSpeechAudio() {
     audioRef.current?.pause();
@@ -897,8 +897,9 @@ export function ChatShell() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Site-Locale": locale,
         },
-        body: JSON.stringify({ message, history }),
+        body: JSON.stringify({ message, history, locale }),
         signal: abortController.signal,
       });
 
@@ -914,18 +915,16 @@ export function ChatShell() {
         }
 
         throw new Error(
-          data?.error ?? "The assistant could not answer that just yet.",
+          data?.error ?? t.errors.generic,
         );
       }
 
       if (!response.ok) {
-        throw new Error("The assistant could not answer that just yet.");
+        throw new Error(t.errors.generic);
       }
 
       if (!response.body) {
-        throw new Error(
-          "I couldn't start the response stream. Please try again.",
-        );
+        throw new Error(t.errors.noStream);
       }
 
       const reader = response.body.getReader();
@@ -965,7 +964,7 @@ export function ChatShell() {
           }
 
           if (event.type === "error") {
-            throw new Error(event.data || "The stream ended unexpectedly.");
+            throw new Error(event.data || t.errors.streamEnded);
           }
 
           if (event.type === "done") {
@@ -981,7 +980,7 @@ export function ChatShell() {
       }
 
       if (!streamedAnswer.trim()) {
-        throw new Error("I got an empty answer back. Please try again.");
+        throw new Error(t.errors.empty);
       }
 
       setAnswerSignature(signature);
@@ -1001,7 +1000,7 @@ export function ChatShell() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "I couldn't reach the assistant. Please try again.",
+          : t.errors.unreachable,
       );
     } finally {
       if (abortControllerRef.current === abortController) {
@@ -1052,7 +1051,7 @@ export function ChatShell() {
     const selectedText = selectionAction.text;
     window.getSelection()?.removeAllRanges();
     setSelectionAction(null);
-    await submitMessage(`Explain "${selectedText}"`);
+    await submitMessage(t.explainSelection(selectedText));
   }
 
   async function playAnswerSpeech() {
@@ -1077,7 +1076,7 @@ export function ChatShell() {
       } catch {
         clearSpeechAudio();
         setSpeechStatus("idle");
-        setSpeechError("The audio could not be played in this browser.");
+        setSpeechError(t.errors.speechPlayback);
       }
 
       return;
@@ -1103,7 +1102,7 @@ export function ChatShell() {
         removeCachedSpeechAudio(speechText);
         clearSpeechAudio();
         setSpeechStatus("idle");
-        setSpeechError("The cached audio could not be played.");
+        setSpeechError(t.errors.speechCached);
       };
 
       try {
@@ -1112,7 +1111,7 @@ export function ChatShell() {
       } catch {
         clearSpeechAudio();
         setSpeechStatus("idle");
-        setSpeechError("The cached audio could not be played.");
+        setSpeechError(t.errors.speechCached);
       }
 
       return;
@@ -1140,7 +1139,7 @@ export function ChatShell() {
         removeCachedSpeechAudio(speechText);
         clearSpeechAudio();
         setSpeechStatus("idle");
-        setSpeechError("The saved audio could not be played.");
+        setSpeechError(t.errors.speechSaved);
       };
 
       try {
@@ -1149,7 +1148,7 @@ export function ChatShell() {
       } catch {
         clearSpeechAudio();
         setSpeechStatus("idle");
-        setSpeechError("The saved audio could not be played.");
+        setSpeechError(t.errors.speechSaved);
       }
 
       return;
@@ -1160,6 +1159,7 @@ export function ChatShell() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Site-Locale": locale,
         },
         body: JSON.stringify({ text: speechText, signature: answerSignature }),
       });
@@ -1173,13 +1173,13 @@ export function ChatShell() {
           data = null;
         }
 
-        throw new Error(data?.error ?? "The answer could not be spoken yet.");
+        throw new Error(data?.error ?? t.errors.speechFailed);
       }
 
       const pcmBuffer = await response.arrayBuffer();
 
       if (!pcmBuffer.byteLength) {
-        throw new Error("I couldn't generate audio for that answer yet.");
+        throw new Error(t.errors.speechEmpty);
       }
 
       const audioBlob = wrapPcmInWav(pcmBuffer);
@@ -1201,7 +1201,7 @@ export function ChatShell() {
         removeCachedSpeechAudio(speechText);
         clearSpeechAudio();
         setSpeechStatus("idle");
-        setSpeechError("The generated audio could not be played.");
+        setSpeechError(t.errors.speechGenerated);
       };
 
       setSpeechStatus("playing");
@@ -1212,7 +1212,7 @@ export function ChatShell() {
       setSpeechError(
         speechRequestError instanceof Error
           ? speechRequestError.message
-          : "I couldn't generate speech for that answer yet.",
+          : t.errors.speechUnknown,
       );
     }
   }
@@ -1231,9 +1231,7 @@ export function ChatShell() {
     const Recognition = getSpeechRecognitionConstructor();
 
     if (!Recognition) {
-      setDictationError(
-        "Dictation is not supported in this browser. Try Chrome or Edge.",
-      );
+      setDictationError(t.errors.dictationUnsupported);
       return;
     }
 
@@ -1246,9 +1244,11 @@ export function ChatShell() {
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang =
-      typeof navigator !== "undefined" && navigator.language
-        ? navigator.language
-        : "en-US";
+      locale === "tr"
+        ? "tr-TR"
+        : typeof navigator !== "undefined" && navigator.language
+          ? navigator.language
+          : "en-US";
 
     recognition.onstart = () => {
       setIsDictating(true);
@@ -1260,7 +1260,7 @@ export function ChatShell() {
     };
 
     recognition.onerror = (event) => {
-      setDictationError(getDictationErrorMessage(event.error));
+      setDictationError(getDictationErrorMessage(t.errors, event.error));
       setIsDictating(false);
       recognitionRef.current = null;
     };
@@ -1303,7 +1303,7 @@ export function ChatShell() {
       recognition.start();
       recognitionRef.current = recognition;
     } catch {
-      setDictationError("Dictation could not start. Try the mic again.");
+      setDictationError(t.errors.dictationStart);
       setIsDictating(false);
     }
   }
@@ -1330,7 +1330,10 @@ export function ChatShell() {
   }
 
   return (
-    <div className="chat-shell relative flex min-h-screen flex-col overflow-hidden">
+    <div
+      lang={locale}
+      className="chat-shell relative flex min-h-screen flex-col overflow-hidden"
+    >
       <main className="relative flex flex-1 items-center justify-center px-6 pb-40 pt-28 sm:px-10">
         {showResult ? (
           <section className="w-full max-w-4xl">
@@ -1340,12 +1343,12 @@ export function ChatShell() {
                 onClick={goBackHome}
                 className="ui-mono mb-6 rounded-full border border-white/14 bg-white/8 px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-white/70 transition duration-300 hover:-translate-y-px hover:border-white/25 hover:bg-white/14 hover:text-white active:translate-y-0 active:scale-[0.98]"
               >
-                Back
+                {t.back}
               </button>
             ) : null}
 
             <p className="ui-mono mb-4 text-[0.72rem] uppercase tracking-[0.35em] text-white/55">
-              {isFollowUp ? "FOLLOW-UP:" : "YOU ASKED:"}
+              {isFollowUp ? t.followUp : t.youAsked}
             </p>
 
             <h1 className="max-w-4xl text-4xl font-bold tracking-[-0.025em] text-white sm:text-5xl lg:text-[4.75rem]">
@@ -1371,7 +1374,7 @@ export function ChatShell() {
                     answer ? "mt-4" : ""
                   }`}
                 >
-                  {answer ? "Stopped" : "Stopped before an answer arrived"}
+                  {answer ? t.stopped : t.stoppedEarly}
                 </p>
               ) : null}
 
@@ -1383,8 +1386,8 @@ export function ChatShell() {
                     disabled={speechStatus === "loading"}
                     aria-label={
                       speechStatus === "playing"
-                        ? "Pause spoken answer"
-                        : "Speak answer"
+                        ? t.pauseSpeech
+                        : t.speak
                     }
                     aria-busy={speechStatus === "loading"}
                     className={`rounded-full border p-3 transition duration-300 active:scale-[0.96] disabled:cursor-wait ${
@@ -1404,7 +1407,7 @@ export function ChatShell() {
                       onClick={askCachedQuestionAgain}
                       className="ui-mono rounded-full border border-white/14 bg-white/8 px-4 py-3 text-xs font-medium uppercase tracking-[0.22em] text-white/78 transition duration-300 hover:-translate-y-px hover:border-white/25 hover:bg-white/14 hover:text-white active:translate-y-0 active:scale-[0.98]"
                     >
-                      Ask Again
+                      {t.askAgain}
                     </button>
                   ) : null}
 
@@ -1416,7 +1419,7 @@ export function ChatShell() {
 
               {!answer && isLoading ? (
                 <p className="ui-mono text-sm uppercase tracking-[0.28em] text-white/55">
-                  Thinking...
+                  {t.thinking}
                 </p>
               ) : null}
 
@@ -1432,7 +1435,7 @@ export function ChatShell() {
 
               {isLoading && answer ? (
                 <p className="ui-mono mt-4 text-xs uppercase tracking-[0.28em] text-white/55">
-                  Streaming...
+                  {t.streaming}
                 </p>
               ) : null}
             </div>
@@ -1447,7 +1450,7 @@ export function ChatShell() {
 
               <Image
                 src={GITHUB_AVATAR_URL}
-                alt="Ömer Balkan GitHub profile picture"
+                alt={t.avatarAlt}
                 width={160}
                 height={160}
                 preload
@@ -1455,16 +1458,16 @@ export function ChatShell() {
               />
 
               <h1 className="max-w-4xl text-left text-3xl font-bold tracking-[-0.015em] text-white transition duration-500 group-hover:translate-x-0.5 group-hover:text-white/92 sm:text-4xl lg:text-[4.25rem]">
-                Ask anything about me
+                {t.title}
               </h1>
             </div>
 
             {!showSearchHistory ? (
               <div
                 className="mt-10 flex max-w-3xl flex-wrap justify-center gap-2"
-                aria-label="Suggested questions"
+                aria-label={t.suggestionsLabel}
               >
-                {SUGGESTED_QUESTIONS.map((question) => (
+                {t.suggestions.map((question) => (
                   <button
                     key={question}
                     type="button"
@@ -1480,7 +1483,7 @@ export function ChatShell() {
             {showSearchHistory ? (
               <div className="mt-8 w-full max-w-3xl rounded-[1.75rem] border border-white/12 bg-white/[0.08] p-3 transition duration-300 hover:border-white/18 hover:bg-white/[0.10]">
                 <p className="px-4 pb-3 pt-2 text-sm font-medium text-white/72">
-                  Recent Searches
+                  {t.recentSearches}
                 </p>
 
                 <div className="overflow-hidden rounded-[1.2rem] border border-white/8 bg-black/10">
@@ -1511,7 +1514,7 @@ export function ChatShell() {
                         onClick={() =>
                           removeSearchHistoryEntry(historyItem.question)
                         }
-                        aria-label={`Remove recent search: ${historyItem.question}`}
+                        aria-label={t.removeRecent(historyItem.question)}
                         className="pointer-events-none rounded-full p-2 text-white/42 opacity-0 transition duration-300 hover:bg-white/8 hover:text-white group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100"
                       >
                         <RemoveIcon />
@@ -1537,7 +1540,7 @@ export function ChatShell() {
             top: selectionAction.y,
           }}
         >
-          Ask about that
+          {t.askAboutSelection}
         </button>
       ) : null}
 
@@ -1559,7 +1562,7 @@ export function ChatShell() {
           className="ask-composer pointer-events-auto mx-auto flex w-full max-w-4xl items-center gap-3 rounded-[2rem] border border-white/12 bg-white/8 p-3 backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:border-white/18 hover:bg-white/10 focus-within:-translate-y-0.5 focus-within:border-white/24 focus-within:bg-white/10 focus-within:shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
         >
           <label className="sr-only" htmlFor="prompt">
-            Ask anything about BLCNYY
+            {t.inputLabel}
           </label>
 
           <input
@@ -1570,8 +1573,8 @@ export function ChatShell() {
             className="ask-composer-input ui-mono min-w-0 flex-1 bg-transparent px-3 py-3 text-base text-white outline-none placeholder:text-white/52 focus:placeholder:text-white/36 sm:text-lg"
             placeholder={
               answer && !isLoading && !wasStopped
-                ? "Ask a follow-up..."
-                : "Ask about work, projects, writing, or anything else..."
+                ? t.followUpPlaceholder
+                : t.placeholder
             }
             autoComplete="off"
             spellCheck={false}
@@ -1581,9 +1584,9 @@ export function ChatShell() {
             type="button"
             onClick={toggleDictation}
             disabled={isLoading}
-            aria-label={isDictating ? "Stop dictation" : "Start dictation"}
+            aria-label={isDictating ? t.stopDictation : t.startDictation}
             aria-pressed={isDictating}
-            title={isDictating ? "Stop dictation" : "Dictate prompt"}
+            title={isDictating ? t.stopDictation : t.dictatePrompt}
             className={`ask-composer-dictation rounded-[1.2rem] border px-4 py-3 text-sm transition duration-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 ${
               isDictating
                 ? "border-white/35 bg-white text-black shadow-[0_0_24px_rgba(255,255,255,0.16)]"
@@ -1597,10 +1600,10 @@ export function ChatShell() {
             <button
               type="button"
               onClick={stopAnswer}
-              aria-label="Stop the answer"
+              aria-label={t.stopLabel}
               className="ask-composer-submit ui-mono rounded-[1.35rem] border border-white/20 bg-white/10 px-5 py-3 text-sm font-medium uppercase tracking-[0.2em] text-white transition duration-300 hover:-translate-y-px hover:bg-white/16 active:translate-y-0 active:scale-[0.98]"
             >
-              Stop
+              {t.stop}
             </button>
           ) : (
             <button
@@ -1608,7 +1611,7 @@ export function ChatShell() {
               disabled={!prompt.trim()}
               className="ask-composer-submit ui-mono rounded-[1.35rem] bg-white px-5 py-3 text-sm font-medium uppercase tracking-[0.2em] text-black transition duration-300 hover:-translate-y-px hover:bg-white/85 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/35"
             >
-              Ask
+              {t.submit}
             </button>
           )}
         </form>

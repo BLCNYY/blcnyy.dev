@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 
 import { isValidAnswerSignature, signAnswer } from "@/lib/answer-signature";
 import { buildProfileContext } from "@/lib/blcnyy-profile";
+import { getDictionary } from "@/lib/dictionaries";
 import { exploreTagline } from "@/lib/explore-content";
+import type { Locale } from "@/lib/i18n";
 import {
   MAX_CHAT_HISTORY_ANSWER_LENGTH,
   MAX_CHAT_HISTORY_TURNS,
@@ -10,7 +12,7 @@ import {
 } from "@/lib/limits";
 import { buildOpenRouterHeaders } from "@/lib/openrouter";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { isCrossSiteRequest } from "@/lib/request-guard";
+import { getRequestLocale, isCrossSiteRequest } from "@/lib/request-guard";
 
 const DEFAULT_OPENROUTER_MODEL = "google/gemini-3.8-flash";
 const OPENROUTER_CHAT_COMPLETIONS_URL =
@@ -20,16 +22,14 @@ const CHAT_RATE_LIMIT = {
   limit: 12,
   windowMs: 60_000,
 };
-const FRIENDLY_MODEL_ERROR =
-  "I couldn't reach the AI model. Please try again in a moment.";
 
 const SYSTEM_PROMPT = `You are the public AI assistant for BLCNYY. You power the Ask experience on Ömer Balkan's personal website, blcnyy.dev.
 
 Use the website context and provided profile context as your grounding. Answer like a helpful, natural personal AI profile.
 
 Website context:
-- The shared top navigation has three items: Explore, Writing, and Ask.
-- Explore is the default experience at /. It presents Ömer's profile as six focused scenes: his identity with links to his X, GitHub, and Substack, the tagline "${exploreTagline}," his story, Salah[Now], his latest articles, and a final invitation to use Ask.
+- The shared top navigation has three items: Explore, Writing, and Ask, plus an EN/TR button that switches the whole site between English and Turkish. The Turkish version lives under /tr (for example /tr, /tr/blog, and /tr/ask).
+- Explore is the default experience at /. It presents Ömer's profile as focused scenes: his identity with links to his X, Instagram, and GitHub, the tagline "${exploreTagline}," his story, his projects Duly and Salah[Now], his Turkish tech and AI content on Instagram, his latest articles, and a final invitation to use Ask.
 - Visitors move through Explore with a mouse wheel, trackpad, touch gestures, keyboard controls, or the on-screen section controls. The scenes transition progressively instead of using conventional document scrolling.
 - Ask is available at /ask. It is the AI conversation the visitor is currently using, powered through OpenRouter and grounded in the public profile information stored in this codebase.
 - Writing is the complete article index at /blog, and individual articles are at /blog/[slug]. Articles are loaded from Notion and most can be read in English, Turkish, Spanish, German, and Italian with the language buttons on each article.
@@ -46,6 +46,11 @@ Rules:
 - Earlier turns in this conversation may be included. Use them to resolve follow-up questions like "tell me more" or "why?".
 - Prefer direct, informative answers. Use 1-3 short paragraphs by default, or bullets when the user asks for a list.
 - Keep the tone warm, clear, and human. Do not sound overly defensive or like a compliance disclaimer.`;
+
+const LANGUAGE_INSTRUCTIONS: Record<Locale, string> = {
+  en: "Reply in the language the visitor writes in.",
+  tr: "The visitor is using the Turkish version of the site. Reply in Turkish unless the visitor writes in another language.",
+};
 
 type HistoryTurn = {
   question: string;
@@ -161,11 +166,11 @@ function findSseBoundary(buffer: string) {
 }
 
 export async function POST(request: Request) {
+  const locale = getRequestLocale(request);
+  const messages = getDictionary(locale).api;
+
   if (isCrossSiteRequest(request)) {
-    return NextResponse.json(
-      { error: "Requests from other sites are not allowed." },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: messages.crossSite }, { status: 403 });
   }
 
   const rateLimit = checkRateLimit(request, CHAT_RATE_LIMIT);
@@ -173,8 +178,7 @@ export async function POST(request: Request) {
   if (!rateLimit.allowed) {
     return NextResponse.json(
       {
-        error:
-          "Too many questions from this connection. Please wait a bit and try again.",
+        error: messages.tooManyQuestions,
       },
       { status: 429, headers: rateLimit.headers },
     );
@@ -186,7 +190,7 @@ export async function POST(request: Request) {
     payload = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Send JSON with a message field." },
+      { error: messages.badJson },
       { status: 400, headers: rateLimit.headers },
     );
   }
@@ -202,7 +206,7 @@ export async function POST(request: Request) {
   if (rawMessage.length > MAX_CHAT_MESSAGE_LENGTH) {
     return NextResponse.json(
       {
-        error: `Please keep your message to ${MAX_CHAT_MESSAGE_LENGTH} characters or fewer.`,
+        error: messages.tooLong(MAX_CHAT_MESSAGE_LENGTH),
       },
       { status: 400, headers: rateLimit.headers },
     );
@@ -214,7 +218,7 @@ export async function POST(request: Request) {
 
   if (!message) {
     return NextResponse.json(
-      { error: "Write a prompt before sending the request." },
+      { error: messages.emptyMessage },
       { status: 400, headers: rateLimit.headers },
     );
   }
@@ -224,8 +228,7 @@ export async function POST(request: Request) {
   if (!apiKey) {
     return NextResponse.json(
       {
-        error:
-          "The assistant is not configured yet. Add OPENROUTER_API_KEY on the server.",
+        error: messages.notConfigured,
       },
       { status: 500, headers: rateLimit.headers },
     );
@@ -247,7 +250,7 @@ export async function POST(request: Request) {
         messages: [
           {
             role: "system",
-            content: `${SYSTEM_PROMPT}\n\nProfile context:\n${buildProfileContext(new Date())}`,
+            content: `${SYSTEM_PROMPT}\n- ${LANGUAGE_INSTRUCTIONS[locale]}\n\nProfile context:\n${buildProfileContext(new Date())}`,
           },
           ...history.flatMap((turn) => [
             { role: "user", content: turn.question },
@@ -264,7 +267,7 @@ export async function POST(request: Request) {
     if (!response.ok) {
       return NextResponse.json(
         {
-          error: FRIENDLY_MODEL_ERROR,
+          error: messages.modelError,
         },
         { status: response.status, headers: rateLimit.headers },
       );
@@ -272,7 +275,7 @@ export async function POST(request: Request) {
 
     if (!response.body) {
       return NextResponse.json(
-        { error: "The assistant could not start a response. Please try again." },
+        { error: messages.startFailed },
         { status: 502, headers: rateLimit.headers },
       );
     }
@@ -325,7 +328,7 @@ export async function POST(request: Request) {
           }
 
           if (parsedChunk.error?.message) {
-            enqueueEvent("error", FRIENDLY_MODEL_ERROR);
+            enqueueEvent("error", messages.modelError);
 
             if (parsedChunk.choices?.[0]?.finish_reason === "error") {
               controller.close();
@@ -385,7 +388,7 @@ export async function POST(request: Request) {
           if (!streamClosed) {
             enqueueEvent(
               "error",
-              "The connection was interrupted while streaming the response. Please try again.",
+              messages.interrupted,
             );
             controller.close();
           }
@@ -408,7 +411,7 @@ export async function POST(request: Request) {
     });
   } catch {
     return NextResponse.json(
-      { error: FRIENDLY_MODEL_ERROR },
+      { error: messages.modelError },
       { status: 502, headers: rateLimit.headers },
     );
   }

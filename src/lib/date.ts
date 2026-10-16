@@ -1,4 +1,6 @@
-export const formatIsoDate = (value: string | null) => {
+import { dateLocales, type Locale } from "@/lib/i18n";
+
+export const formatIsoDate = (value: string | null, locale: Locale = "en") => {
   if (!value) {
     return "";
   }
@@ -9,11 +11,10 @@ export const formatIsoDate = (value: string | null) => {
     return "";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(dateLocales[locale], {
     month: "short",
     day: "numeric",
     year: "numeric",
     timeZone: "UTC",
   }).format(date);
 };
-

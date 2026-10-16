@@ -10,10 +10,15 @@ export const siteConfig = {
   xHandle: "@BLCNYY",
 } as const;
 
+export const instagram = {
+  handle: "@blcnyy",
+  url: "https://www.instagram.com/blcnyy/",
+} as const;
+
 export const socialLinks = [
   { label: "X", url: "https://x.com/BLCNYY" },
+  { label: "Instagram", url: instagram.url },
   { label: "GitHub", url: "https://github.com/BLCNYY" },
-  { label: "Substack", url: "https://blcnyy.substack.com" },
 ] as const;
 
 export const absoluteUrl = (path = "/") =>

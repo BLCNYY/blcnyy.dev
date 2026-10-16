@@ -14,13 +14,16 @@ import {
 } from "react";
 
 import { formatIsoDate } from "@/lib/date";
+import { type Dictionary, getDictionary } from "@/lib/dictionaries";
 import type {
   ArticlePreview,
   ExploreProject,
 } from "@/lib/explore-content";
-import { socialLinks } from "@/lib/site";
+import { localizePath, type Locale } from "@/lib/i18n";
+import { instagram, socialLinks } from "@/lib/site";
 
 type ExploreExperienceProps = {
+  locale: Locale;
   articles: readonly ArticlePreview[];
   projects: readonly ExploreProject[];
   story: {
@@ -46,17 +49,7 @@ type SceneStyle = CSSProperties & {
   "--scene-scale": number;
 };
 
-const scenes = [
-  { id: "identity", label: "Identity" },
-  { id: "introduction", label: "Introduction" },
-  { id: "story", label: "Story" },
-  { id: "salah-now", label: "Salah Now" },
-  { id: "articles", label: "Articles" },
-  { id: "ask", label: "Ask" },
-] as const;
-
 const GITHUB_AVATAR_URL = "https://github.com/BLCNYY.png?size=480";
-const LAST_SCENE_INDEX = scenes.length - 1;
 const POSITION_EPSILON = 0.001;
 const WHEEL_GESTURE_SETTLE_MS = 115;
 const WHEEL_TRAVEL_PER_SCENE = 90;
@@ -112,16 +105,20 @@ function Scene({
 
 function ProjectScene({
   activeIndex,
+  dictionary,
   displayPosition,
   index,
+  number,
   project,
 }: {
   activeIndex: number;
+  dictionary: Dictionary;
   displayPosition: number;
   index: number;
+  number: number;
   project: ExploreProject;
 }) {
-  const headingId = `project-${index}-title`;
+  const headingId = `project-${project.id}-title`;
 
   return (
     <Scene
@@ -132,21 +129,103 @@ function ProjectScene({
     >
       <div className="scene-copy project-scene-copy">
         <p className="scene-kicker">
-          Project {String(index - 2).padStart(2, "0")}
+          {dictionary.explore.projectKicker(String(number).padStart(2, "0"))}
         </p>
         <h2 id={headingId} className="project-name">
           {project.name}
         </h2>
         <p className="project-statement">{project.statement}</p>
         <p className="scene-body project-summary">{project.summary}</p>
+        {project.tags?.length ? (
+          <ul className="project-tags">
+            {project.tags.map((tag) => (
+              <li key={tag}>{tag}</li>
+            ))}
+          </ul>
+        ) : null}
+        <div className="project-links">
+          {project.links.map((link) => (
+            <a
+              key={link.url}
+              className="scene-text-link"
+              href={link.url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {link.label}
+              <span aria-hidden="true"> ↗</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </Scene>
+  );
+}
+
+function InstagramScene({
+  activeIndex,
+  dictionary,
+  displayPosition,
+  index,
+}: {
+  activeIndex: number;
+  dictionary: Dictionary;
+  displayPosition: number;
+  index: number;
+}) {
+  const copy = dictionary.explore.instagram;
+
+  return (
+    <Scene
+      activeIndex={activeIndex}
+      displayPosition={displayPosition}
+      index={index}
+      labelledBy="instagram-title"
+      className="instagram-scene"
+    >
+      <div className="instagram-scene-copy">
+        <div className="scene-copy">
+          <p className="scene-kicker">{copy.kicker}</p>
+          <h2 id="instagram-title" className="scene-title">
+            {copy.title}
+          </h2>
+          <p className="scene-body">{copy.body}</p>
+          <a
+            className="scene-text-link"
+            href={instagram.url}
+            target="_blank"
+            rel="noreferrer me"
+          >
+            {copy.cta}
+            <span aria-hidden="true"> ↗</span>
+          </a>
+        </div>
+
         <a
-          className="scene-text-link"
-          href={project.url}
+          className="instagram-card"
+          href={instagram.url}
           target="_blank"
           rel="noreferrer"
+          tabIndex={-1}
+          aria-hidden="true"
         >
-          {project.domain}
-          <span aria-hidden="true"> ↗</span>
+          <span className="instagram-card-ring">
+            <Image
+              src={GITHUB_AVATAR_URL}
+              alt=""
+              width={480}
+              height={480}
+              className="instagram-card-avatar"
+            />
+          </span>
+          <span className="instagram-card-handle">{instagram.handle}</span>
+          <span className="instagram-card-platform">Instagram</span>
+          <span className="instagram-card-tags">
+            {copy.tags.map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
+          </span>
+          <span className="instagram-card-follow">{copy.follow}</span>
         </a>
       </div>
     </Scene>
@@ -189,17 +268,21 @@ function prepareArticleFocus(card: HTMLAnchorElement) {
 
 function ArticleCard({
   article,
+  dictionary,
   index,
+  locale,
 }: {
   article: ArticlePreview;
+  dictionary: Dictionary;
   index: number;
+  locale: Locale;
 }) {
   const isLatest = index === 0;
-  const date = formatIsoDate(article.date);
+  const date = formatIsoDate(article.date, locale);
 
   return (
     <Link
-      href={`/blog/${article.slug}`}
+      href={localizePath(locale, `/blog/${article.slug}`)}
       className={`article-preview-card ${isLatest ? "is-latest" : ""}`}
       onBlur={(event) => resetArticleTilt(event.currentTarget)}
       onFocus={(event) => prepareArticleFocus(event.currentTarget)}
@@ -214,13 +297,20 @@ function ArticleCard({
         <span className="article-pointer-stroke" aria-hidden="true" />
         <div className="article-preview-meta">
           <span>
-            {isLatest ? ["Latest", date].filter(Boolean).join(" · ") : date}
+            {isLatest
+              ? [dictionary.explore.latest, date].filter(Boolean).join(" · ")
+              : date}
           </span>
         </div>
-        <h3>{article.title}</h3>
-        {isLatest && article.summary ? <p>{article.summary}</p> : null}
+        <h3 lang={article.language ?? undefined}>{article.title}</h3>
+        {isLatest && article.summary ? (
+          <p lang={article.language ?? undefined}>{article.summary}</p>
+        ) : null}
         {isLatest && article.tags.length ? (
-          <div className="article-preview-tags" aria-label="Article topics">
+          <div
+            className="article-preview-tags"
+            aria-label={dictionary.explore.articleTopics}
+          >
             {article.tags.slice(0, 2).map((tag) => (
               <span key={tag}>{tag}</span>
             ))}
@@ -232,11 +322,28 @@ function ArticleCard({
 }
 
 export function ExploreExperience({
+  locale,
   articles,
   projects,
   story,
   tagline,
 }: ExploreExperienceProps) {
+  const dictionary = getDictionary(locale);
+  const sceneLabels = dictionary.explore.scenes;
+  const firstProjectIndex = 3;
+  const instagramIndex = firstProjectIndex + projects.length;
+  const articlesIndex = instagramIndex + 1;
+  const askIndex = articlesIndex + 1;
+  const scenes = [
+    { id: "identity", label: sceneLabels.identity },
+    { id: "introduction", label: sceneLabels.introduction },
+    { id: "story", label: sceneLabels.story },
+    ...projects.map((project) => ({ id: project.id, label: project.name })),
+    { id: "instagram", label: sceneLabels.instagram },
+    { id: "articles", label: sceneLabels.articles },
+    { id: "ask", label: sceneLabels.ask },
+  ];
+  const lastSceneIndex = scenes.length - 1;
   const [activeIndex, setActiveIndex] = useState(0);
   const [displayPosition, setDisplayPosition] = useState(0);
   const [isReady, setIsReady] = useState(false);
@@ -291,7 +398,7 @@ export function ExploreExperience({
 
   const setVirtualTarget = useCallback(
     (requestedPosition: number) => {
-      const nextPosition = clamp(requestedPosition, 0, LAST_SCENE_INDEX);
+      const nextPosition = clamp(requestedPosition, 0, lastSceneIndex);
       targetPositionRef.current = nextPosition;
 
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -308,11 +415,11 @@ export function ExploreExperience({
 
       startPositionAnimation();
     },
-    [startPositionAnimation],
+    [lastSceneIndex, startPositionAnimation],
   );
 
   const goTo = useCallback((requestedIndex: number) => {
-    const nextIndex = clamp(requestedIndex, 0, LAST_SCENE_INDEX);
+    const nextIndex = clamp(requestedIndex, 0, lastSceneIndex);
 
     if (wheelResetTimerRef.current !== null) {
       window.clearTimeout(wheelResetTimerRef.current);
@@ -326,7 +433,7 @@ export function ExploreExperience({
     activeIndexRef.current = nextIndex;
     setActiveIndex(nextIndex);
     setVirtualTarget(nextIndex);
-  }, [setVirtualTarget]);
+  }, [lastSceneIndex, setVirtualTarget]);
 
   const goBy = useCallback(
     (amount: number) => {
@@ -369,7 +476,7 @@ export function ExploreExperience({
       const nextIndex = clamp(
         shouldAdvance ? origin + direction : origin,
         0,
-        LAST_SCENE_INDEX,
+        lastSceneIndex,
       );
 
       wheelAccumulatorRef.current = 0;
@@ -429,7 +536,7 @@ export function ExploreExperience({
         wheelResetTimerRef.current = null;
       }
     };
-  }, [setVirtualTarget]);
+  }, [lastSceneIndex, setVirtualTarget]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -473,7 +580,7 @@ export function ExploreExperience({
 
       if (event.key === "End") {
         event.preventDefault();
-        goTo(scenes.length - 1);
+        goTo(lastSceneIndex);
       }
     };
 
@@ -482,7 +589,7 @@ export function ExploreExperience({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [goBy, goTo]);
+  }, [goBy, goTo, lastSceneIndex]);
 
   const handleTouchStart = (event: ReactTouchEvent<HTMLElement>) => {
     if (event.touches.length !== 1) {
@@ -529,12 +636,12 @@ export function ExploreExperience({
     }
   };
 
-  const firstProject = projects[0];
   const nextScene = scenes[activeIndex + 1];
 
   return (
     <main
       ref={containerRef}
+      lang={locale}
       className={`explore-experience ${isReady ? "is-ready" : ""}`}
       onTouchCancel={finishTouchGesture}
       onTouchMove={handleTouchMove}
@@ -542,7 +649,11 @@ export function ExploreExperience({
       onTouchEnd={handleTouchEnd}
     >
       <p className="sr-only" aria-live="polite">
-        Section {activeIndex + 1} of {scenes.length}: {scenes[activeIndex].label}
+        {dictionary.explore.sectionStatus(
+          activeIndex + 1,
+          scenes.length,
+          scenes[activeIndex].label,
+        )}
       </p>
 
       <Scene
@@ -567,7 +678,7 @@ export function ExploreExperience({
               BLCNYY
             </h1>
             <p className="identity-real-name">Ömer Balkan</p>
-            <ul className="identity-links" aria-label="Elsewhere">
+            <ul className="identity-links" aria-label={dictionary.explore.elsewhere}>
               {socialLinks.map((link) => (
                 <li key={link.label}>
                   <a href={link.url} target="_blank" rel="noreferrer me">
@@ -601,7 +712,7 @@ export function ExploreExperience({
         labelledBy="story-title"
       >
         <div className="scene-copy story-scene-copy">
-          <p className="scene-kicker">My story</p>
+          <p className="scene-kicker">{dictionary.explore.storyKicker}</p>
           <h2 id="story-title" className="scene-title">
             {story.heading}
           </h2>
@@ -609,38 +720,57 @@ export function ExploreExperience({
         </div>
       </Scene>
 
-      {firstProject ? (
+      {projects.map((project, projectIndex) => (
         <ProjectScene
+          key={project.id}
           activeIndex={activeIndex}
+          dictionary={dictionary}
           displayPosition={displayPosition}
-          index={3}
-          project={firstProject}
+          index={firstProjectIndex + projectIndex}
+          number={projectIndex + 1}
+          project={project}
         />
-      ) : null}
+      ))}
+
+      <InstagramScene
+        activeIndex={activeIndex}
+        dictionary={dictionary}
+        displayPosition={displayPosition}
+        index={instagramIndex}
+      />
 
       <Scene
         activeIndex={activeIndex}
         displayPosition={displayPosition}
-        index={4}
+        index={articlesIndex}
         labelledBy="articles-title"
         className="articles-scene"
       >
         <div className="articles-scene-copy">
           <div className="articles-heading-row">
             <div>
-              <p className="scene-kicker">Writing</p>
+              <p className="scene-kicker">{dictionary.explore.writingKicker}</p>
               <h2 id="articles-title" className="articles-title">
-                Latest articles
+                {dictionary.explore.latestArticles}
               </h2>
             </div>
-            <Link href="/blog" className="scene-text-link articles-all-link">
-              All articles <span aria-hidden="true">→</span>
+            <Link
+              href={localizePath(locale, "/blog")}
+              className="scene-text-link articles-all-link"
+            >
+              {dictionary.explore.allArticles} <span aria-hidden="true">→</span>
             </Link>
           </div>
 
           <div className="articles-grid">
             {articles.map((article, index) => (
-              <ArticleCard key={article.id} article={article} index={index} />
+              <ArticleCard
+                key={article.id}
+                article={article}
+                dictionary={dictionary}
+                index={index}
+                locale={locale}
+              />
             ))}
           </div>
         </div>
@@ -649,30 +779,30 @@ export function ExploreExperience({
       <Scene
         activeIndex={activeIndex}
         displayPosition={displayPosition}
-        index={5}
+        index={askIndex}
         labelledBy="ask-invitation-title"
         className="ask-invitation-scene"
       >
         <div className="scene-copy ask-invitation-copy">
           <h2 id="ask-invitation-title" className="ask-invitation-title">
-            Want to go deeper?
+            {dictionary.explore.askTitle}
           </h2>
           <Link
-            href="/ask"
+            href={localizePath(locale, "/ask")}
             className="ask-depth-button"
           >
-            <span>Just Ask!</span>
+            <span>{dictionary.explore.askCta}</span>
           </Link>
         </div>
       </Scene>
 
-      <nav className="scene-progress" aria-label="Explore sections">
+      <nav className="scene-progress" aria-label={dictionary.explore.sectionsLabel}>
         {scenes.map((scene, index) => (
           <button
             key={scene.id}
             type="button"
             className={index === activeIndex ? "is-active" : ""}
-            aria-label={`Go to ${scene.label}`}
+            aria-label={dictionary.explore.goTo(scene.label)}
             aria-current={index === activeIndex ? "step" : undefined}
             onClick={() => goTo(index)}
           >
@@ -686,10 +816,12 @@ export function ExploreExperience({
           type="button"
           className="scene-advance"
           onClick={() => goBy(1)}
-          aria-label={`Continue to ${nextScene.label}`}
+          aria-label={dictionary.explore.continueTo(nextScene.label)}
         >
           {activeIndex > 0 ? (
-            <span className="scene-advance-label">Continue</span>
+            <span className="scene-advance-label">
+              {dictionary.explore.continue}
+            </span>
           ) : null}
           <span className="scene-advance-arrow" aria-hidden="true">
             ↓
