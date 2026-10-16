@@ -184,6 +184,7 @@ html.explore-locked body {
 .scene-text-link:focus-visible,
 .article-back-link:focus-visible,
 .identity-links a:focus-visible,
+.testflight-button:focus-visible,
 .article-language-switcher button:focus-visible,
 .article-rich-content a:focus-visible {
   outline: 2px solid var(--orange-bright);
@@ -252,16 +253,6 @@ html.explore-locked body {
 
 .scene-copy {
   width: min(940px, 100%);
-}
-
-.scene-kicker {
-  margin: 0 0 1.15rem;
-  color: var(--orange-bright);
-  font-family: var(--font-mono), "SFMono-Regular", monospace;
-  font-size: clamp(0.68rem, 1vw, 0.78rem);
-  font-weight: 500;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
 }
 
 .scene-title {
@@ -461,30 +452,41 @@ html.explore-locked body {
   margin-top: clamp(1rem, 2.5vh, 1.75rem);
 }
 
-.project-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  margin: clamp(1rem, 2.4vh, 1.5rem) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.project-tags li {
-  padding: 0.38rem 0.75rem;
-  border: 1px solid rgba(255, 154, 31, 0.32);
-  border-radius: 999px;
-  color: rgba(255, 255, 255, 0.78);
-  font-family: var(--font-mono), "SFMono-Regular", monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
-}
-
 .project-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 1.75rem;
-  margin-top: clamp(1.25rem, 3vh, 2rem);
+  align-items: center;
+  gap: 0.75rem 1.75rem;
+  margin-top: clamp(1.5rem, 3.5vh, 2.25rem);
+}
+
+.testflight-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.72rem 1.3rem 0.72rem 1.05rem;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms ease;
+}
+
+.testflight-button:hover {
+  box-shadow: 0 18px 44px rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.testflight-button-logo {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: -0.12rem;
 }
 
 .project-links .scene-text-link {
@@ -566,24 +568,6 @@ html.explore-locked body {
   text-transform: uppercase;
 }
 
-.instagram-card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.4rem;
-  margin-top: 0.25rem;
-}
-
-.instagram-card-tags span {
-  padding: 0.35rem 0.65rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  color: rgba(255, 255, 255, 0.7);
-  font-family: var(--font-mono), "SFMono-Regular", monospace;
-  font-size: 0.66rem;
-  letter-spacing: 0.04em;
-}
-
 .instagram-card-follow {
   margin-top: 0.4rem;
   padding: 0.6rem 1.5rem;
@@ -628,10 +612,6 @@ html.explore-locked body {
   justify-content: space-between;
   gap: 2rem;
   margin-bottom: clamp(1.25rem, 2.8vh, 2rem);
-}
-
-.articles-heading-row .scene-kicker {
-  margin-bottom: 0.7rem;
 }
 
 .articles-title {
@@ -1564,7 +1544,7 @@ html.explore-locked body {
   text-wrap: balance;
 }
 
-.not-found-copy > p:not(.scene-kicker) {
+.not-found-copy > p {
   max-width: 520px;
   margin: 1.5rem 0 0;
   color: rgba(255, 255, 255, 0.6);
@@ -1619,7 +1599,6 @@ html.explore-locked body {
     font-size: 1.1rem;
   }
 
-  .instagram-card-tags,
   .instagram-card-follow {
     display: none;
   }
@@ -1822,10 +1801,6 @@ html.explore-locked body {
     line-height: 1.48;
   }
 
-  .scene-kicker {
-    margin-bottom: 0.8rem;
-  }
-
   .articles-grid {
     height: min(54vh, 350px);
   }
@@ -1987,7 +1962,8 @@ html.explore-locked body {
   .identity-links a,
   .article-language-switcher button,
   .site-language-link,
-  .instagram-card {
+  .instagram-card,
+  .testflight-button {
     transition-duration: 1ms;
   }
 

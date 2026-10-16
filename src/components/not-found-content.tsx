@@ -14,7 +14,6 @@ export function NotFoundContent({ locale: fixedLocale }: { locale?: Locale }) {
   return (
     <main className="reading-page not-found-page" lang={locale}>
       <div className="reading-header not-found-copy">
-        <p className="scene-kicker">404</p>
         <h1>{copy.title}</h1>
         <p>{copy.body}</p>
         <div className="not-found-links">

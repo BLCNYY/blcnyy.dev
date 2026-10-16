@@ -43,7 +43,7 @@ export const profile = {
     "He has publicly shared that Sam Altman follows him on X.",
     "He has also publicly shared that Elon Musk interacted with his content in the past.",
     "His X profile is https://x.com/BLCNYY (@BLCNYY).",
-    "As of October 2026, he has recently started making tech and AI content in Turkish on Instagram as @blcnyy (https://www.instagram.com/blcnyy/).",
+    "He also makes tech and AI content in Turkish on Instagram as @blcnyy (https://www.instagram.com/blcnyy/).",
   ],
   contentStyle: [
     "Reflective",

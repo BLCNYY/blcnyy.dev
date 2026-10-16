@@ -127,6 +127,32 @@ function trimParagraph(paragraph: NotionRichText[]) {
   return trimmed;
 }
 
+// Text properties mark headings Markdown-style ("## Heading"); render them
+// at the same levels as Notion heading blocks.
+function renderParagraph(paragraph: NotionRichText[], index: number) {
+  const match = paragraph[0]?.plain_text.match(/^(#{1,3}) +/);
+
+  if (!match) {
+    return (
+      <p key={index}>
+        <RichText items={paragraph} />
+      </p>
+    );
+  }
+
+  const items = [
+    { ...paragraph[0], plain_text: paragraph[0].plain_text.slice(match[0].length) },
+    ...paragraph.slice(1),
+  ];
+  const Heading = (["h2", "h3", "h4"] as const)[match[1].length - 1];
+
+  return (
+    <Heading key={index}>
+      <RichText items={items} />
+    </Heading>
+  );
+}
+
 function collectGroup(
   blocks: readonly NotionBlock[],
   startIndex: number,
@@ -404,15 +430,7 @@ export function PostRichContent({
   const paragraphs = splitRichTextParagraphs(content);
 
   if (paragraphs.length > 0) {
-    return (
-      <>
-        {paragraphs.map((paragraph, index) => (
-          <p key={index}>
-            <RichText items={paragraph} />
-          </p>
-        ))}
-      </>
-    );
+    return <>{paragraphs.map(renderParagraph)}</>;
   }
 
   return <p>{emptyMessage}</p>;

@@ -13,7 +13,6 @@ export async function BlogIndexPage({ locale }: { locale: Locale }) {
   return (
     <main className="reading-page article-index-page" lang={locale}>
       <header className="reading-header article-index-header">
-        <p className="scene-kicker">{dictionary.blog.kicker}</p>
         <h1>{dictionary.blog.title}</h1>
         <p>{dictionary.blog.intro}</p>
       </header>

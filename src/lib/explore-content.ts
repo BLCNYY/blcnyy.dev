@@ -5,12 +5,12 @@ import type { NotionPost } from "@/lib/notion";
 export type ExploreProjectLink = {
   label: string;
   url: string;
+  kind?: "testflight";
 };
 
 export type ExploreProject = {
   id: string;
   name: string;
-  tags?: string[];
   statement: string;
   summary: string;
   links: ExploreProjectLink[];
@@ -50,12 +50,11 @@ const exploreContent: Record<Locale, ExploreContent> = {
       {
         id: "duly",
         name: "Duly",
-        tags: ["iPhone & iPad", "Public beta"],
         statement: "Say it once. It's organized.",
         summary:
           "An app that turns a quick voice ramble into reminders, lists, ideas, and notes. The public beta is open on TestFlight.",
         links: [
-          { label: "Join the TestFlight beta", url: DULY_TESTFLIGHT_URL },
+          { label: "Join TestFlight", url: DULY_TESTFLIGHT_URL, kind: "testflight" },
           { label: "useduly.app", url: DULY_URL },
         ],
       },
@@ -79,12 +78,11 @@ const exploreContent: Record<Locale, ExploreContent> = {
       {
         id: "duly",
         name: "Duly",
-        tags: ["iPhone ve iPad", "Herkese açık beta"],
         statement: "Bir kere söyle, gerisi düzenli.",
         summary:
           "Sesli anlattıklarını hatırlatmalara, listelere, fikirlere ve notlara dönüştüren bir uygulama. Herkese açık betası TestFlight'ta.",
         links: [
-          { label: "TestFlight betasına katıl", url: DULY_TESTFLIGHT_URL },
+          { label: "TestFlight'a katıl", url: DULY_TESTFLIGHT_URL, kind: "testflight" },
           { label: "useduly.app", url: DULY_URL },
         ],
       },

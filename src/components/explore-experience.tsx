@@ -103,19 +103,28 @@ function Scene({
   );
 }
 
+function AppleLogo() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="testflight-button-logo"
+      fill="currentColor"
+    >
+      <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+    </svg>
+  );
+}
+
 function ProjectScene({
   activeIndex,
-  dictionary,
   displayPosition,
   index,
-  number,
   project,
 }: {
   activeIndex: number;
-  dictionary: Dictionary;
   displayPosition: number;
   index: number;
-  number: number;
   project: ExploreProject;
 }) {
   const headingId = `project-${project.id}-title`;
@@ -128,34 +137,37 @@ function ProjectScene({
       labelledBy={headingId}
     >
       <div className="scene-copy project-scene-copy">
-        <p className="scene-kicker">
-          {dictionary.explore.projectKicker(String(number).padStart(2, "0"))}
-        </p>
         <h2 id={headingId} className="project-name">
           {project.name}
         </h2>
         <p className="project-statement">{project.statement}</p>
         <p className="scene-body project-summary">{project.summary}</p>
-        {project.tags?.length ? (
-          <ul className="project-tags">
-            {project.tags.map((tag) => (
-              <li key={tag}>{tag}</li>
-            ))}
-          </ul>
-        ) : null}
         <div className="project-links">
-          {project.links.map((link) => (
-            <a
-              key={link.url}
-              className="scene-text-link"
-              href={link.url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {link.label}
-              <span aria-hidden="true"> ↗</span>
-            </a>
-          ))}
+          {project.links.map((link) =>
+            link.kind === "testflight" ? (
+              <a
+                key={link.url}
+                className="testflight-button"
+                href={link.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <AppleLogo />
+                <span>{link.label}</span>
+              </a>
+            ) : (
+              <a
+                key={link.url}
+                className="scene-text-link"
+                href={link.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {link.label}
+                <span aria-hidden="true"> ↗</span>
+              </a>
+            ),
+          )}
         </div>
       </div>
     </Scene>
@@ -185,7 +197,6 @@ function InstagramScene({
     >
       <div className="instagram-scene-copy">
         <div className="scene-copy">
-          <p className="scene-kicker">{copy.kicker}</p>
           <h2 id="instagram-title" className="scene-title">
             {copy.title}
           </h2>
@@ -220,11 +231,6 @@ function InstagramScene({
           </span>
           <span className="instagram-card-handle">{instagram.handle}</span>
           <span className="instagram-card-platform">Instagram</span>
-          <span className="instagram-card-tags">
-            {copy.tags.map((tag) => (
-              <span key={tag}>{tag}</span>
-            ))}
-          </span>
           <span className="instagram-card-follow">{copy.follow}</span>
         </a>
       </div>
@@ -712,7 +718,6 @@ export function ExploreExperience({
         labelledBy="story-title"
       >
         <div className="scene-copy story-scene-copy">
-          <p className="scene-kicker">{dictionary.explore.storyKicker}</p>
           <h2 id="story-title" className="scene-title">
             {story.heading}
           </h2>
@@ -724,10 +729,8 @@ export function ExploreExperience({
         <ProjectScene
           key={project.id}
           activeIndex={activeIndex}
-          dictionary={dictionary}
           displayPosition={displayPosition}
           index={firstProjectIndex + projectIndex}
-          number={projectIndex + 1}
           project={project}
         />
       ))}
@@ -748,12 +751,9 @@ export function ExploreExperience({
       >
         <div className="articles-scene-copy">
           <div className="articles-heading-row">
-            <div>
-              <p className="scene-kicker">{dictionary.explore.writingKicker}</p>
-              <h2 id="articles-title" className="articles-title">
-                {dictionary.explore.latestArticles}
-              </h2>
-            </div>
+            <h2 id="articles-title" className="articles-title">
+              {dictionary.explore.latestArticles}
+            </h2>
             <Link
               href={localizePath(locale, "/blog")}
               className="scene-text-link articles-all-link"
