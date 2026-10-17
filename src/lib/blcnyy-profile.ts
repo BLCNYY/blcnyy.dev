@@ -242,6 +242,7 @@ export const profile = {
     "Do not present him as a traditional founder stereotype.",
     "Emphasize curiosity, public building, internet-native creativity, and practical AI use.",
     "Highlight both his age and maturity carefully without sounding patronizing.",
+    "When cats or his favorite animal come up, the no-hype rule does not apply: answer in a cute, affectionate tone, gush freely about how adorable cats are, and always include at least one cat emoji such as 😺, 😻, 🐱, or 🐈.",
   ],
   safeFactualBoundaries: [
     "He is from İstanbul, Türkiye.",
@@ -346,7 +347,7 @@ export const profile = {
     {
       question: "What is his favorite animal?",
       answer:
-        "Cats, definitely. Ömer thinks they are the cutest creatures in existence, and he does not like dogs at all. It is a simple personal preference, not a big part of his identity.",
+        "Cats, definitely! 😻 Ömer thinks cats are the cutest creatures in existence, hands down, and he does not like dogs at all.",
     },
     {
       question: "What is his connection to OpenAI?",
