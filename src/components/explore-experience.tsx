@@ -9,6 +9,7 @@ import {
   type TouchEvent as ReactTouchEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -72,9 +73,30 @@ const WHEEL_TRAVEL_PER_SCENE = 90;
 const WHEEL_COMMIT_DISTANCE = 36;
 const TOUCH_TRAVEL_PER_SCENE = 145;
 const TOUCH_COMMIT_DISTANCE = 42;
+// The scene lives in this page's history entry so Back from an article lands
+// on the same scene instead of the top. Fresh visits start at the top.
+const SCENE_HISTORY_KEY = "exploreScene";
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
+}
+
+function readRememberedScene() {
+  const scene: unknown = window.history.state?.[SCENE_HISTORY_KEY];
+
+  return typeof scene === "number" && Number.isInteger(scene) ? scene : null;
+}
+
+function rememberScene(index: number) {
+  if (window.history.state?.[SCENE_HISTORY_KEY] === index) {
+    return;
+  }
+
+  // Spreading the current state keeps the Next.js router's own entries.
+  window.history.replaceState(
+    { ...window.history.state, [SCENE_HISTORY_KEY]: index },
+    "",
+  );
 }
 
 function isInteractiveTarget(target: EventTarget | null) {
@@ -555,6 +577,7 @@ export function ExploreExperience({
     activeIndexRef.current = nextIndex;
     setActiveIndex(nextIndex);
     setVirtualTarget(nextIndex);
+    rememberScene(nextIndex);
   }, [lastSceneIndex, setVirtualTarget]);
 
   const goBy = useCallback(
@@ -563,6 +586,27 @@ export function ExploreExperience({
     },
     [goTo],
   );
+
+  // Runs before paint so Back shows the remembered scene without a jump.
+  useLayoutEffect(() => {
+    const rememberedScene = readRememberedScene();
+
+    if (rememberedScene === null) {
+      return;
+    }
+
+    const index = clamp(rememberedScene, 0, lastSceneIndex);
+    activeIndexRef.current = index;
+    displayPositionRef.current = index;
+    targetPositionRef.current = index;
+    // History is only readable on the client, and reading it during render
+    // would break hydration, so the restore has to happen here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveIndex(index);
+    setDisplayPosition(index);
+    // Skip the fade-in so a swipe back matches the page it left.
+    setIsReady(true);
+  }, [lastSceneIndex]);
 
   useEffect(() => {
     document.documentElement.classList.add("explore-locked");
@@ -607,6 +651,7 @@ export function ExploreExperience({
       activeIndexRef.current = nextIndex;
       setActiveIndex(nextIndex);
       setVirtualTarget(nextIndex);
+      rememberScene(nextIndex);
     };
 
     const handleWheel = (event: WheelEvent) => {
