@@ -983,7 +983,11 @@ export function ExploreExperience({
         </div>
       </Scene>
 
-      <nav className="scene-progress" aria-label={dictionary.explore.sectionsLabel}>
+      <nav
+        className="scene-progress"
+        aria-label={dictionary.explore.sectionsLabel}
+        style={{ "--scene-count": scenes.length } as CSSProperties}
+      >
         {scenes.map((scene, index) => (
           <button
             key={scene.id}

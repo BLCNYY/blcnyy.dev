@@ -1297,7 +1297,7 @@ export function ChatShell({ locale }: { locale: Locale }) {
       lang={locale}
       className="chat-shell relative flex min-h-screen flex-col overflow-hidden"
     >
-      <main className="relative flex flex-1 items-center justify-center px-6 pb-40 pt-28 sm:px-10">
+      <main className="ask-main relative flex flex-1 items-center justify-center px-6 pb-40 pt-28 sm:px-10">
         {showResult ? (
           <section className="w-full max-w-4xl">
             {!isLoading ? (
@@ -1417,17 +1417,17 @@ export function ChatShell({ locale }: { locale: Locale }) {
                 width={160}
                 height={160}
                 preload
-                className="relative h-14 w-14 rounded-full object-cover ring-1 ring-white/15 transition duration-500 group-hover:scale-[1.06] group-hover:ring-white/28 group-hover:shadow-[0_0_28px_rgba(255,255,255,0.12)] sm:h-16 sm:w-16 lg:h-20 lg:w-20"
+                className="ask-avatar relative h-14 w-14 rounded-full object-cover ring-1 ring-white/15 transition duration-500 group-hover:scale-[1.06] group-hover:ring-white/28 group-hover:shadow-[0_0_28px_rgba(255,255,255,0.12)] sm:h-16 sm:w-16 lg:h-20 lg:w-20"
               />
 
-              <h1 className="max-w-4xl text-left text-3xl font-bold tracking-[-0.015em] text-white transition duration-500 group-hover:translate-x-0.5 group-hover:text-white/92 sm:text-4xl lg:text-[4.25rem]">
+              <h1 className="ask-title max-w-4xl text-left text-3xl font-bold tracking-[-0.015em] text-white transition duration-500 group-hover:translate-x-0.5 group-hover:text-white/92 sm:text-4xl lg:text-[4.25rem]">
                 {t.title}
               </h1>
             </div>
 
             {!showSearchHistory ? (
               <div
-                className="mt-10 flex max-w-3xl flex-wrap justify-center gap-2"
+                className="ask-suggestions mt-10 flex max-w-3xl flex-wrap justify-center gap-2"
                 aria-label={t.suggestionsLabel}
               >
                 {t.suggestions.map((question) => (
