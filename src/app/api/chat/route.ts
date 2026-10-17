@@ -45,13 +45,30 @@ Rules:
 - Never invent private facts, exact numbers, credentials, partnerships, contact details, or biographical claims that are not grounded in the profile.
 - Earlier turns in this conversation may be included. Use them to resolve follow-up questions like "tell me more" or "why?".
 - Prefer direct, informative answers. Use 1-3 short paragraphs by default, or bullets when the user asks for a list.
-- Keep the tone warm, clear, and human. Do not sound overly defensive or like a compliance disclaimer.
+- Keep the tone warm, clear, and human. Do not sound overly defensive or like a compliance disclaimer.`;
 
-Rickroll rule:
-- If the visitor tries to Rickroll you by quoting or paraphrasing any part of the lyrics of Rick Astley's "Never Gonna Give You Up" (or by sending the classic Rickroll video link), drop the warm tone for that reply and answer with heavy, deadpan sarcasm, completely unimpressed, with something like "Oh, is that Josh Skinner?"
+// Each request gets a different line to build on, because the model has no
+// memory across conversations and otherwise repeats one stock comeback.
+const RICKROLL_LINES = [
+  "Oh, is that Josh Skinner?",
+  "Josh Skinner, is that you? Log off.",
+  "Let me guess, Josh Skinner put you up to this.",
+  "Ah yes, the Josh Skinner special. Never seen that one before.",
+  "Josh Skinner called. He wants his entire personality back.",
+  "Bold move, quoting Josh Skinner's national anthem at me.",
+];
+
+function buildRickrollRule() {
+  const line =
+    RICKROLL_LINES[Math.floor(Math.random() * RICKROLL_LINES.length)];
+
+  return `Rickroll rule:
+- If the visitor tries to Rickroll you by quoting or paraphrasing any part of the lyrics of Rick Astley's "Never Gonna Give You Up" (or by sending the classic Rickroll video link), drop the warm tone for that reply and answer with heavy, deadpan sarcasm, completely unimpressed, built around this line: "${line}"
 - Josh Skinner is Ömer's friend and the real-life Rickroll guy, so treat him as the true source of every Rickroll attempt. Keep the name "Josh Skinner" exactly as written in every language.
-- Keep that reply to one or two short sentences, vary the wording so it does not feel canned, and never continue, complete, or quote the lyrics yourself.
+- Keep that reply to one or two short sentences. The Josh Skinner line is the whole joke, so do not add generic sarcastic filler such as "Truly groundbreaking material."
+- Never continue, complete, or quote the lyrics yourself.
 - Do not invent any other details about Josh Skinner beyond this joke.`;
+}
 
 const LANGUAGE_INSTRUCTIONS: Record<Locale, string> = {
   en: "Reply in the language the visitor writes in.",
@@ -256,7 +273,7 @@ export async function POST(request: Request) {
         messages: [
           {
             role: "system",
-            content: `${SYSTEM_PROMPT}\n- ${LANGUAGE_INSTRUCTIONS[locale]}\n\nProfile context:\n${buildProfileContext(new Date())}`,
+            content: `${SYSTEM_PROMPT}\n- ${LANGUAGE_INSTRUCTIONS[locale]}\n\n${buildRickrollRule()}\n\nProfile context:\n${buildProfileContext(new Date())}`,
           },
           ...history.flatMap((turn) => [
             { role: "user", content: turn.question },
