@@ -344,6 +344,11 @@ export const profile = {
         "His building workflow includes the Codex app, Figma, Ghostty, Notion, AI-assisted coding tools, and natural language prompting. He mainly uses Notion for school, tracking projects and statuses, to-do lists, and organizing his life overall.",
     },
     {
+      question: "What is his favorite animal?",
+      answer:
+        "Cats, definitely. Ömer thinks they are the cutest creatures in existence, and he does not like dogs at all. It is a simple personal preference, not a big part of his identity.",
+    },
+    {
       question: "What is his connection to OpenAI?",
       answer:
         "Ömer calls himself the #1 fan of OpenAI and uses OpenAI services like ChatGPT and Codex to get things done faster every day. OpenAI invited him to attend OpenAI DevDay 2026 in San Francisco on September 29, 2026, but he could not attend because his US visa was not issued.",
