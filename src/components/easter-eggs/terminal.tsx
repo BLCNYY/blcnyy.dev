@@ -60,6 +60,18 @@ const COMMAND_NAMES = [
 const socialUrl = (label: string) =>
   socialLinks.find((link) => link.label === label)?.url ?? "";
 
+// Ask answers arrive as Markdown; a terminal shows plain text.
+const toPlainText = (markdown: string) =>
+  markdown
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, text: string, url: string) =>
+      text === url ? url : `${text} (${url})`,
+    )
+    .replace(/(\*\*|__)(.+?)\1/g, "$2")
+    .replace(/(^|[^*\w])\*(?!\s)([^*\n]+?)\*(?!\w)/g, "$1$2")
+    .replace(/`([^`\n]+)`/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^(\s*)[-*]\s+/gm, "$1• ");
+
 export function Terminal({
   locale,
   onClose,
@@ -191,7 +203,7 @@ export function Terminal({
         message: question,
         locale,
         signal: controller.signal,
-        onText: (answer) => updateLine(id, answer, "output"),
+        onText: (answer) => updateLine(id, toPlainText(answer), "output"),
       });
     } catch (error) {
       if (!controller.signal.aborted) {
