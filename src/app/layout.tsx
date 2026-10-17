@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
 
+import { EasterEggs } from "@/components/easter-eggs/easter-eggs";
 import { SiteNavigation } from "@/components/site-navigation";
 import { baseOpenGraph, siteConfig } from "@/lib/site";
 
@@ -64,6 +65,7 @@ export default function RootLayout({
       <body className="min-h-full">
         <SiteNavigation />
         {children}
+        <EasterEggs />
       </body>
     </html>
   );

@@ -15,9 +15,15 @@ export const instagram = {
   url: "https://www.instagram.com/blcnyy/",
 } as const;
 
+export const youtube = {
+  handle: "@BLCNYY",
+  url: "https://www.youtube.com/@BLCNYY",
+} as const;
+
 export const socialLinks = [
   { label: "X", url: "https://x.com/BLCNYY" },
   { label: "Instagram", url: instagram.url },
+  { label: "YouTube", url: youtube.url },
   { label: "GitHub", url: "https://github.com/BLCNYY" },
 ] as const;
 

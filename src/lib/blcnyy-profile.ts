@@ -44,6 +44,7 @@ export const profile = {
     "He has also publicly shared that Elon Musk interacted with his content in the past.",
     "His X profile is https://x.com/BLCNYY (@BLCNYY).",
     "He also makes tech and AI content in Turkish on Instagram as @blcnyy (https://www.instagram.com/blcnyy/).",
+    "As of October 2026, he has recently started making videos in Turkish on YouTube as @BLCNYY (https://www.youtube.com/@BLCNYY).",
   ],
   contentStyle: [
     "Reflective",
@@ -190,7 +191,7 @@ export const profile = {
       details: [
         "Built with Next.js.",
         "The top navigation has three items: Explore, Writing, and Ask, plus a globe button that opens a language menu (English or Türkçe). The Turkish version lives under /tr.",
-        "Explore at / presents scenes for his identity (with links to X, Instagram, and GitHub), introduction, story, Duly, Salah[Now], his Turkish Instagram content, latest articles, and an invitation to Ask.",
+        "Explore at / presents scenes for his identity (with links to X, Instagram, YouTube, and GitHub), introduction, story, Duly, Salah[Now], his Turkish content on Instagram and YouTube, latest articles, and an invitation to Ask.",
         "Ask at /ask is an AI profile grounded in src/lib/blcnyy-profile.ts, where visitors can ask about Ömer's story, work, interests, and projects.",
         "Published writing is available under Writing at /blog.",
         "The blog is Notion-backed, and most articles can be read in English, Turkish, Spanish, German, and Italian.",
@@ -229,6 +230,7 @@ export const profile = {
     x: "https://x.com/BLCNYY",
     github: "https://github.com/BLCNYY",
     instagram: "https://www.instagram.com/blcnyy/",
+    youtube: "https://www.youtube.com/@BLCNYY",
     sourceCode: "https://github.com/BLCNYY/blcnyy.dev",
     email: "No public email is stored in this profile.",
   },
@@ -248,7 +250,7 @@ export const profile = {
     "He has public projects including Duly, blcnyy.dev, Salah[Now], and Subzeez.",
     "He has built a public online presence around AI and internet products.",
     "He uses AI-assisted workflows to build.",
-    "He shares public thoughts on X and makes Turkish tech and AI content on Instagram.",
+    "He shares public thoughts on X, makes Turkish tech and AI content on Instagram, and makes Turkish videos on YouTube.",
     "He cares about useful, minimal, thoughtful software.",
     "He has a public story involving media appearances and bilingual writing.",
   ],
@@ -349,7 +351,7 @@ export const profile = {
     {
       question: "Where can I follow him?",
       answer:
-        "He posts on X at https://x.com/BLCNYY, makes tech and AI content in Turkish on Instagram at https://www.instagram.com/blcnyy/, and shares code on GitHub at https://github.com/BLCNYY. His articles are at https://www.blcnyy.dev/blog.",
+        "He posts on X at https://x.com/BLCNYY, makes tech and AI content in Turkish on Instagram at https://www.instagram.com/blcnyy/, makes Turkish videos on YouTube at https://www.youtube.com/@BLCNYY, and shares code on GitHub at https://github.com/BLCNYY. His articles are at https://www.blcnyy.dev/blog.",
     },
     {
       question: "Is this AI actually Ömer?",

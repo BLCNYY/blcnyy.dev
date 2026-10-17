@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { RunawayPage } from "@/components/easter-eggs/runaway-page";
 import { getDictionary } from "@/lib/dictionaries";
 import { getLocaleFromPath, localizePath, type Locale } from "@/lib/i18n";
 
@@ -27,6 +28,7 @@ export function NotFoundContent({ locale: fixedLocale }: { locale?: Locale }) {
             {copy.ask} <span aria-hidden="true">→</span>
           </Link>
         </div>
+        <RunawayPage locale={locale} />
       </div>
     </main>
   );

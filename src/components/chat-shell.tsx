@@ -8,18 +8,12 @@ import remarkGfm from "remark-gfm";
 import { type Dictionary, getDictionary } from "@/lib/dictionaries";
 import type { Locale } from "@/lib/i18n";
 import { MAX_CHAT_MESSAGE_LENGTH } from "@/lib/limits";
+import { parseStreamEvent } from "@/lib/chat-stream";
 
 type ChatResponse = {
   answer?: string;
   error?: string;
 };
-
-type ChatStreamEvent =
-  | {
-      type: "text" | "error" | "done";
-      data: string;
-    }
-  | null;
 
 type SearchHistoryEntry = {
   question: string;
@@ -445,37 +439,6 @@ function readSearchHistory(): SearchHistoryEntry[] {
     return getLatestSearchHistoryItems(validEntries);
   } catch {
     return [];
-  }
-}
-
-function parseStreamEvent(rawEvent: string): ChatStreamEvent {
-  const lines = rawEvent.split(/\r?\n/);
-  const eventType =
-    lines.find((line) => line.startsWith("event:"))?.slice(6).trim() ?? "text";
-  const data = lines
-    .filter((line) => line.startsWith("data:"))
-    .map((line) => line.slice(5).trimStart())
-    .join("\n");
-
-  if (!data) {
-    return null;
-  }
-
-  if (
-    eventType !== "text" &&
-    eventType !== "error" &&
-    eventType !== "done"
-  ) {
-    return null;
-  }
-
-  try {
-    return {
-      type: eventType,
-      data: JSON.parse(data) as string,
-    };
-  } catch {
-    return null;
   }
 }
 

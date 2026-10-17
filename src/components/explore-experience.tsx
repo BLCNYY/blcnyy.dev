@@ -24,8 +24,9 @@ import type {
   ArticlePreview,
   ExploreProject,
 } from "@/lib/explore-content";
+import { EGG_EVENTS, emitEgg } from "@/lib/easter-eggs";
 import { localizePath, type Locale } from "@/lib/i18n";
-import { instagram, socialLinks } from "@/lib/site";
+import { instagram, socialLinks, youtube } from "@/lib/site";
 
 type ExploreExperienceProps = {
   locale: Locale;
@@ -55,6 +56,12 @@ type SceneStyle = CSSProperties & {
 };
 
 const GITHUB_AVATAR_URL = "https://github.com/BLCNYY.png?size=480";
+// Scrolling this far past the last scene (in pixels, across wheel, trackpad,
+// touch, and keys) launches the Ship it game. Pausing resets it.
+const SHIP_IT_DISTANCE = 5000;
+const SHIP_IT_RESET_MS = 3500;
+const SHIP_IT_KEY_PUSH = 400;
+const SHIP_IT_TOUCH_SCALE = 1.6;
 const PROJECT_FORMATIONS: Record<string, BackdropFormation> = {
   duly: "orb",
   "salah-now": "compass",
@@ -183,7 +190,45 @@ function ProjectScene({
   );
 }
 
-function InstagramScene({
+function SocialCard({
+  buttonLabel,
+  handle,
+  platform,
+  url,
+  variant,
+}: {
+  buttonLabel: string;
+  handle: string;
+  platform: string;
+  url: string;
+  variant: "instagram" | "youtube";
+}) {
+  return (
+    <a
+      className={`social-card is-${variant}`}
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      tabIndex={-1}
+      aria-hidden="true"
+    >
+      <span className="social-card-ring">
+        <Image
+          src={GITHUB_AVATAR_URL}
+          alt=""
+          width={480}
+          height={480}
+          className="social-card-avatar"
+        />
+      </span>
+      <span className="social-card-handle">{handle}</span>
+      <span className="social-card-platform">{platform}</span>
+      <span className="social-card-button">{buttonLabel}</span>
+    </a>
+  );
+}
+
+function SocialScene({
   activeIndex,
   dictionary,
   displayPosition,
@@ -194,54 +239,60 @@ function InstagramScene({
   displayPosition: number;
   index: number;
 }) {
-  const copy = dictionary.explore.instagram;
+  const copy = dictionary.explore.social;
 
   return (
     <Scene
       activeIndex={activeIndex}
       displayPosition={displayPosition}
       index={index}
-      labelledBy="instagram-title"
-      className="instagram-scene"
+      labelledBy="social-title"
+      className="social-scene"
     >
-      <div className="instagram-scene-copy">
+      <div className="social-scene-copy">
         <div className="scene-copy">
-          <h2 id="instagram-title" className="scene-title">
+          <h2 id="social-title" className="scene-title">
             {copy.title}
           </h2>
           <p className="scene-body">{copy.body}</p>
-          <a
-            className="scene-text-link"
-            href={instagram.url}
-            target="_blank"
-            rel="noreferrer me"
-          >
-            {copy.cta}
-            <span aria-hidden="true"> ↗</span>
-          </a>
+          <div className="project-links">
+            <a
+              className="scene-text-link"
+              href={instagram.url}
+              target="_blank"
+              rel="noreferrer me"
+            >
+              {copy.instagramCta}
+              <span aria-hidden="true"> ↗</span>
+            </a>
+            <a
+              className="scene-text-link"
+              href={youtube.url}
+              target="_blank"
+              rel="noreferrer me"
+            >
+              {copy.youtubeCta}
+              <span aria-hidden="true"> ↗</span>
+            </a>
+          </div>
         </div>
 
-        <a
-          className="instagram-card"
-          href={instagram.url}
-          target="_blank"
-          rel="noreferrer"
-          tabIndex={-1}
-          aria-hidden="true"
-        >
-          <span className="instagram-card-ring">
-            <Image
-              src={GITHUB_AVATAR_URL}
-              alt=""
-              width={480}
-              height={480}
-              className="instagram-card-avatar"
-            />
-          </span>
-          <span className="instagram-card-handle">{instagram.handle}</span>
-          <span className="instagram-card-platform">Instagram</span>
-          <span className="instagram-card-follow">{copy.follow}</span>
-        </a>
+        <div className="social-cards">
+          <SocialCard
+            buttonLabel={copy.follow}
+            handle={instagram.handle}
+            platform="Instagram"
+            url={instagram.url}
+            variant="instagram"
+          />
+          <SocialCard
+            buttonLabel={copy.subscribe}
+            handle={youtube.handle}
+            platform="YouTube"
+            url={youtube.url}
+            variant="youtube"
+          />
+        </div>
       </div>
     </Scene>
   );
@@ -346,15 +397,15 @@ export function ExploreExperience({
   const dictionary = getDictionary(locale);
   const sceneLabels = dictionary.explore.scenes;
   const firstProjectIndex = 3;
-  const instagramIndex = firstProjectIndex + projects.length;
-  const articlesIndex = instagramIndex + 1;
+  const socialIndex = firstProjectIndex + projects.length;
+  const articlesIndex = socialIndex + 1;
   const askIndex = articlesIndex + 1;
   const scenes = [
     { id: "identity", label: sceneLabels.identity },
     { id: "introduction", label: sceneLabels.introduction },
     { id: "story", label: sceneLabels.story },
     ...projects.map((project) => ({ id: project.id, label: project.name })),
-    { id: "instagram", label: sceneLabels.instagram },
+    { id: "social", label: sceneLabels.social },
     { id: "articles", label: sceneLabels.articles },
     { id: "ask", label: sceneLabels.ask },
   ];
@@ -388,6 +439,49 @@ export function ExploreExperience({
   const touchStartYRef = useRef<number | null>(null);
   const touchDistanceRef = useRef(0);
   const touchOriginRef = useRef(0);
+  const overscrollRef = useRef<{ distance: number; timer: number | null }>({
+    distance: 0,
+    timer: null,
+  });
+  const touchTravelRef = useRef(0);
+
+  // Scrolling past the last scene speeds up the warp tunnel; going far enough
+  // without pausing launches the Ship it game.
+  const registerOverscroll = useCallback((distance: number) => {
+    const overscroll = overscrollRef.current;
+
+    if (overscroll.timer !== null) {
+      window.clearTimeout(overscroll.timer);
+      overscroll.timer = null;
+    }
+
+    overscroll.distance += distance;
+
+    if (overscroll.distance >= SHIP_IT_DISTANCE) {
+      overscroll.distance = 0;
+      emitEgg(EGG_EVENTS.warpBoost, 0);
+      emitEgg(EGG_EVENTS.shipIt);
+      return;
+    }
+
+    emitEgg(EGG_EVENTS.warpBoost, overscroll.distance / SHIP_IT_DISTANCE);
+    overscroll.timer = window.setTimeout(() => {
+      overscroll.distance = 0;
+      overscroll.timer = null;
+      emitEgg(EGG_EVENTS.warpBoost, 0);
+    }, SHIP_IT_RESET_MS);
+  }, []);
+
+  useEffect(() => {
+    const overscroll = overscrollRef.current;
+
+    return () => {
+      if (overscroll.timer !== null) {
+        window.clearTimeout(overscroll.timer);
+      }
+
+    };
+  }, []);
 
   const startPositionAnimation = useCallback(() => {
     if (animationFrameRef.current !== null) {
@@ -544,6 +638,14 @@ export function ExploreExperience({
             ? window.innerHeight
             : 1;
 
+      if (
+        event.deltaY > 0 &&
+        wheelGestureOriginRef.current === lastSceneIndex &&
+        activeIndexRef.current === lastSceneIndex
+      ) {
+        registerOverscroll(event.deltaY * multiplier);
+      }
+
       wheelAccumulatorRef.current = clamp(
         wheelAccumulatorRef.current + event.deltaY * multiplier,
         -WHEEL_TRAVEL_PER_SCENE,
@@ -564,7 +666,7 @@ export function ExploreExperience({
         wheelResetTimerRef.current = null;
       }
     };
-  }, [lastSceneIndex, setVirtualTarget]);
+  }, [lastSceneIndex, registerOverscroll, setVirtualTarget]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -586,6 +688,11 @@ export function ExploreExperience({
         (event.key === " " && !event.shiftKey)
       ) {
         event.preventDefault();
+
+        if (activeIndexRef.current === lastSceneIndex) {
+          registerOverscroll(SHIP_IT_KEY_PUSH);
+        }
+
         goBy(1);
         return;
       }
@@ -617,7 +724,7 @@ export function ExploreExperience({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [goBy, goTo, lastSceneIndex]);
+  }, [goBy, goTo, lastSceneIndex, registerOverscroll]);
 
   const handleTouchStart = (event: ReactTouchEvent<HTMLElement>) => {
     if (event.touches.length !== 1) {
@@ -626,6 +733,7 @@ export function ExploreExperience({
 
     touchStartYRef.current = event.changedTouches[0]?.clientY ?? null;
     touchDistanceRef.current = 0;
+    touchTravelRef.current = 0;
     touchOriginRef.current = activeIndexRef.current;
   };
 
@@ -643,6 +751,7 @@ export function ExploreExperience({
       TOUCH_TRAVEL_PER_SCENE,
     );
     touchDistanceRef.current = distance;
+    touchTravelRef.current = startY - currentY;
     setVirtualTarget(touchOriginRef.current + distance / TOUCH_TRAVEL_PER_SCENE);
   };
 
@@ -652,6 +761,12 @@ export function ExploreExperience({
     const nextIndex = Math.abs(distance) >= TOUCH_COMMIT_DISTANCE
       ? origin + (distance > 0 ? 1 : -1)
       : origin;
+
+    if (origin === lastSceneIndex && touchTravelRef.current > 0) {
+      registerOverscroll(touchTravelRef.current * SHIP_IT_TOUCH_SCALE);
+    }
+
+    touchTravelRef.current = 0;
 
     touchStartYRef.current = null;
     touchDistanceRef.current = 0;
@@ -762,11 +877,11 @@ export function ExploreExperience({
         />
       ))}
 
-      <InstagramScene
+      <SocialScene
         activeIndex={activeIndex}
         dictionary={dictionary}
         displayPosition={displayPosition}
-        index={instagramIndex}
+        index={socialIndex}
       />
 
       <Scene

@@ -33,7 +33,7 @@ const en = {
       identity: "Identity",
       introduction: "Introduction",
       story: "Story",
-      instagram: "Instagram",
+      social: "Instagram & YouTube",
       articles: "Articles",
       ask: "Ask",
     },
@@ -50,11 +50,13 @@ const en = {
     articleTopics: "Article topics",
     askTitle: "Want to go deeper?",
     askCta: "Just Ask!",
-    instagram: {
+    social: {
       title: "Tech and AI, now in Turkish.",
-      body: "I also make tech and AI content in Turkish on Instagram, for anyone who'd rather keep up with what's new in their own language.",
-      cta: "Follow @blcnyy",
+      body: "I also make tech and AI content in Turkish on Instagram and YouTube, for anyone who'd rather keep up with what's new in their own language.",
+      instagramCta: "Follow on Instagram",
+      youtubeCta: "Watch on YouTube",
       follow: "Follow",
+      subscribe: "Subscribe",
     },
   },
   blog: {
@@ -143,6 +145,128 @@ const en = {
       dictationStart: "Dictation could not start. Try the mic again.",
     },
   },
+  eggs: {
+    secretFound: "Secret found",
+    secretsCount: (found: number, total: number) =>
+      `${found} of ${total} secrets found`,
+    secrets: {
+      terminal: {
+        name: "Hidden terminal",
+        hint: "Some keys are worth pressing more than once.",
+      },
+      console: {
+        name: "Developer console",
+        hint: "Developers always check the console.",
+      },
+      spell: {
+        name: "Name in lights",
+        hint: "Type my name. Anywhere on Explore.",
+      },
+      snake: {
+        name: "Retro code",
+        hint: "↑ ↑ ↓ ↓ …",
+      },
+      "ship-it": {
+        name: "Ship it",
+        hint: "Want to go deeper? Really, really deep?",
+      },
+      "runaway-page": {
+        name: "Runaway page",
+        hint: "Get lost.",
+      },
+    },
+    console: {
+      greeting: "Hey developer 👋 Curious, huh?",
+      hint: "Type blcnyy.help() to see what you can do.",
+      commands: [
+        ["blcnyy.help()", "show this list"],
+        ["blcnyy.terminal()", "open the hidden terminal"],
+        ["blcnyy.party()", "celebrate with the particles"],
+        ["blcnyy.secrets()", "see which secrets you found"],
+      ],
+      tip: "Tip: on a keyboard, tap Shift three times anywhere.",
+      secretsHeader: (found: number, total: number) =>
+        `Secrets found: ${found}/${total}`,
+    },
+    terminal: {
+      title: "visitor@blcnyy.dev — zsh",
+      close: "Close terminal",
+      welcome:
+        "Welcome to the BLCNYY terminal. Type 'help' to see what you can do.",
+      commands: [
+        ["help", "list commands"],
+        ["whoami", "who are you?"],
+        ["about", "a short intro"],
+        ["ls", "list what's here"],
+        ["projects", "Duly and Salah[Now]"],
+        ["open <name>", "open duly, salah, x, instagram, youtube, github, blog, ask"],
+        ["ask <question>", "ask the AI profile anything"],
+        ["theme <color>", "recolor the particles: blue, purple, #ff3366, rainbow…"],
+        ["party", "celebrate"],
+        ["lang <en|tr>", "switch language"],
+        ["secrets", "see which secrets you found"],
+        ["clear", "clear the screen"],
+        ["exit", "close the terminal"],
+      ],
+      whoami:
+        "visitor. Curious enough to find a hidden terminal. Respect. 🫡",
+      about:
+        "Ömer Balkan (BLCNYY). Vibe-coder and tech enthusiast from İstanbul, building Duly and Salah[Now] and writing about tech and AI.",
+      ls: "projects/   articles/   story.md   secrets.txt",
+      notFound: (command: string) =>
+        `zsh: command not found: ${command}. Try 'help'.`,
+      askUsage: "Usage: ask <question>",
+      asking: "thinking…",
+      askFailed: "The AI profile could not answer right now.",
+      sudo: "Nice try. This incident will be reported. 👀",
+      rmrf: [
+        "removing /System…",
+        "removing /Users/visitor/homework…",
+        "removing /node_modules (this may take a while)…",
+        "removing blcnyy.dev…",
+      ],
+      rmrfEnd: "Just kidding. Everything is fine. 😄",
+      opening: (target: string) => `Opening ${target}…`,
+      openUsage: "Usage: open <duly|salah|x|instagram|youtube|github|blog|ask>",
+      themeUsage:
+        "Usage: theme <color>. Try blue, purple, pink, matrix, rainbow, or a hex code like #ff3366. 'theme orange' resets it.",
+      themeTooDark: "That color is too dark to see. Try a brighter one.",
+      themeSet: (name: string) => `Theme set to ${name}.`,
+      langUsage: "Usage: lang <en|tr>",
+      party: "🎉 Party mode!",
+      secretsHeader: (found: number, total: number) =>
+        `Secrets found: ${found}/${total}`,
+      secretLocked: "???",
+      cat: "Try 'cat story.md' or 'cat secrets.txt'.",
+      secretsFile: "Nice try. Secrets are found, not read. 🥚",
+    },
+    snake: {
+      title: "SNAKE",
+      start: "Press Space to start",
+      controls: "Arrow keys or WASD · Esc to exit",
+      score: "Score",
+      best: "Best",
+      gameOver: "Game over",
+      restart: "Press Space to play again",
+    },
+    shipIt: {
+      title: "SHIP IT",
+      tagline: "Dodge the bugs. Ship to production.",
+      start: "Press Space or tap to start",
+      controls: "Mouse, arrow keys, or finger to move · Esc to exit",
+      score: "Shipped",
+      best: "Best",
+      deployed: (version: number) => `Deployed v${version}.0 🚀`,
+      failed: "Build failed ❌",
+      restart: "Press Space or tap to retry",
+      close: "Close game",
+    },
+    runaway: {
+      prompt: "Or catch the page that ran away.",
+      caught: "Caught it! Taking you home…",
+      label: "missing-page.html",
+    },
+  },
   api: {
     crossSite: "Requests from other sites are not allowed.",
     tooManyQuestions:
@@ -207,7 +331,7 @@ const tr: Dictionary = {
       identity: "Kimlik",
       introduction: "Tanıtım",
       story: "Hikâye",
-      instagram: "Instagram",
+      social: "Instagram ve YouTube",
       articles: "Yazılar",
       ask: "Sor",
     },
@@ -224,11 +348,13 @@ const tr: Dictionary = {
     articleTopics: "Yazı konuları",
     askTitle: "Daha fazlasını mı merak ediyorsun?",
     askCta: "Hemen sor!",
-    instagram: {
+    social: {
       title: "Teknoloji ve yapay zekâ, artık Türkçe.",
-      body: "Instagram'da Türkçe teknoloji ve yapay zekâ içerikleri de üretiyorum. Yenilikleri kendi dilinde takip etmek isteyen herkes için.",
-      cta: "@blcnyy'yi takip et",
+      body: "Instagram ve YouTube'da Türkçe teknoloji ve yapay zekâ içerikleri de üretiyorum. Yenilikleri kendi dilinde takip etmek isteyen herkes için.",
+      instagramCta: "Instagram'da takip et",
+      youtubeCta: "YouTube'da izle",
       follow: "Takip et",
+      subscribe: "Abone ol",
     },
   },
   blog: {
@@ -316,6 +442,127 @@ const tr: Dictionary = {
       dictationNetwork: "Sesle yazma için çalışan bir ses tanıma bağlantısı gerekiyor.",
       dictationUnavailable: "Sesle yazma şu an bu tarayıcıda kullanılamıyor.",
       dictationStart: "Sesle yazma başlatılamadı. Mikrofonu tekrar dene.",
+    },
+  },
+  eggs: {
+    secretFound: "Sır bulundu",
+    secretsCount: (found: number, total: number) =>
+      `${total} sırdan ${found} tanesi bulundu`,
+    secrets: {
+      terminal: {
+        name: "Gizli terminal",
+        hint: "Bazı tuşlara birden fazla basmaya değer.",
+      },
+      console: {
+        name: "Geliştirici konsolu",
+        hint: "Geliştiriciler konsola mutlaka bakar.",
+      },
+      spell: {
+        name: "Işıklarda isim",
+        hint: "Adımı yaz. Keşfet'te herhangi bir yerde.",
+      },
+      snake: {
+        name: "Retro kod",
+        hint: "↑ ↑ ↓ ↓ …",
+      },
+      "ship-it": {
+        name: "Ship it",
+        hint: "Daha derine mi? Gerçekten çok derine?",
+      },
+      "runaway-page": {
+        name: "Kaçak sayfa",
+        hint: "Kaybol.",
+      },
+    },
+    console: {
+      greeting: "Selam geliştirici 👋 Meraklısın, ha?",
+      hint: "Neler yapabileceğini görmek için blcnyy.help() yaz.",
+      commands: [
+        ["blcnyy.help()", "bu listeyi göster"],
+        ["blcnyy.terminal()", "gizli terminali aç"],
+        ["blcnyy.party()", "parçacıklarla kutla"],
+        ["blcnyy.secrets()", "bulduğun sırları gör"],
+      ],
+      tip: "İpucu: klavyede herhangi bir yerde Shift'e üç kez bas.",
+      secretsHeader: (found: number, total: number) =>
+        `Bulunan sırlar: ${found}/${total}`,
+    },
+    terminal: {
+      title: "visitor@blcnyy.dev — zsh",
+      close: "Terminali kapat",
+      welcome:
+        "BLCNYY terminaline hoş geldin. Neler yapabileceğini görmek için 'help' yaz.",
+      commands: [
+        ["help", "komutları listele"],
+        ["whoami", "sen kimsin?"],
+        ["about", "kısa bir tanıtım"],
+        ["ls", "burada neler var"],
+        ["projects", "Duly ve Salah[Now]"],
+        ["open <ad>", "duly, salah, x, instagram, youtube, github, blog, ask aç"],
+        ["ask <soru>", "yapay zekâ profiline soru sor"],
+        ["theme <renk>", "parçacıkları renklendir: blue, purple, #ff3366, rainbow…"],
+        ["party", "kutla"],
+        ["lang <en|tr>", "dili değiştir"],
+        ["secrets", "bulduğun sırları gör"],
+        ["clear", "ekranı temizle"],
+        ["exit", "terminali kapat"],
+      ],
+      whoami: "ziyaretçi. Gizli bir terminal bulacak kadar meraklı. Saygılar. 🫡",
+      about:
+        "Ömer Balkan (BLCNYY). İstanbul'dan bir vibe-coder ve teknoloji meraklısı; Duly ve Salah[Now] üzerinde çalışıyor, teknoloji ve yapay zekâ hakkında yazıyor.",
+      ls: "projects/   articles/   story.md   secrets.txt",
+      notFound: (command: string) =>
+        `zsh: komut bulunamadı: ${command}. 'help' yazmayı dene.`,
+      askUsage: "Kullanım: ask <soru>",
+      asking: "düşünüyor…",
+      askFailed: "Yapay zekâ profili şu an yanıt veremedi.",
+      sudo: "İyi denemeydi. Bu olay raporlanacak. 👀",
+      rmrf: [
+        "/System siliniyor…",
+        "/Users/visitor/ödevler siliniyor…",
+        "/node_modules siliniyor (biraz sürebilir)…",
+        "blcnyy.dev siliniyor…",
+      ],
+      rmrfEnd: "Şaka şaka. Her şey yolunda. 😄",
+      opening: (target: string) => `${target} açılıyor…`,
+      openUsage: "Kullanım: open <duly|salah|x|instagram|youtube|github|blog|ask>",
+      themeUsage:
+        "Kullanım: theme <renk>. blue, purple, pink, matrix, rainbow ya da #ff3366 gibi bir hex kodu dene. 'theme orange' eski haline döndürür.",
+      themeTooDark: "Bu renk görünmeyecek kadar koyu. Daha açık bir renk dene.",
+      themeSet: (name: string) => `Tema: ${name}.`,
+      langUsage: "Kullanım: lang <en|tr>",
+      party: "🎉 Parti modu!",
+      secretsHeader: (found: number, total: number) =>
+        `Bulunan sırlar: ${found}/${total}`,
+      secretLocked: "???",
+      cat: "'cat story.md' ya da 'cat secrets.txt' dene.",
+      secretsFile: "İyi denemeydi. Sırlar okunmaz, bulunur. 🥚",
+    },
+    snake: {
+      title: "SNAKE",
+      start: "Başlamak için Space'e bas",
+      controls: "Ok tuşları ya da WASD · Çıkmak için Esc",
+      score: "Skor",
+      best: "En iyi",
+      gameOver: "Oyun bitti",
+      restart: "Tekrar oynamak için Space'e bas",
+    },
+    shipIt: {
+      title: "SHIP IT",
+      tagline: "Bug'lardan kaç. Production'a çıkar.",
+      start: "Başlamak için Space'e bas ya da dokun",
+      controls: "Fare, ok tuşları ya da parmağınla hareket et · Çıkmak için Esc",
+      score: "Yayınlanan",
+      best: "En iyi",
+      deployed: (version: number) => `v${version}.0 yayında 🚀`,
+      failed: "Build başarısız ❌",
+      restart: "Tekrar denemek için Space'e bas ya da dokun",
+      close: "Oyunu kapat",
+    },
+    runaway: {
+      prompt: "Ya da kaçan sayfayı yakala.",
+      caught: "Yakaladın! Seni ana sayfaya götürüyorum…",
+      label: "kayip-sayfa.html",
     },
   },
   api: {

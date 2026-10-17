@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { getDictionary } from "@/lib/dictionaries";
+import { SECRET_IDS, useFoundSecrets } from "@/lib/easter-eggs";
 import {
   getLocaleFromPath,
   localeNames,
@@ -77,6 +78,7 @@ function LanguageMenu({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
   const dictionary = getDictionary(locale);
+  const foundSecrets = useFoundSecrets();
 
   useEffect(() => {
     if (!isOpen) {
@@ -154,6 +156,20 @@ function LanguageMenu({
             </li>
           );
         })}
+        {foundSecrets.length ? (
+          <li
+            className="site-language-secrets"
+            aria-label={dictionary.eggs.secretsCount(
+              foundSecrets.length,
+              SECRET_IDS.length,
+            )}
+          >
+            <span aria-hidden="true">🥚</span>
+            <span aria-hidden="true">
+              {foundSecrets.length}/{SECRET_IDS.length}
+            </span>
+          </li>
+        ) : null}
       </ul>
     </div>
   );

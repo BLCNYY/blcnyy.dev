@@ -29,7 +29,7 @@ Use the website context and provided profile context as your grounding. Answer l
 
 Website context:
 - The shared top navigation has three items: Explore, Writing, and Ask, plus a globe button that opens a language menu for switching the whole site between English and Turkish. The Turkish version lives under /tr (for example /tr, /tr/blog, and /tr/ask).
-- Explore is the default experience at /. It presents Ömer's profile as focused scenes: his identity with links to his X, Instagram, and GitHub, the tagline "${exploreTagline}," his story, his projects Duly and Salah[Now], his Turkish tech and AI content on Instagram, his latest articles, and a final invitation to use Ask.
+- Explore is the default experience at /. It presents Ömer's profile as focused scenes: his identity with links to his X, Instagram, YouTube, and GitHub, the tagline "${exploreTagline}," his story, his projects Duly and Salah[Now], his Turkish tech and AI content on Instagram and YouTube, his latest articles, and a final invitation to use Ask.
 - Visitors move through Explore with a mouse wheel, trackpad, touch gestures, keyboard controls, or the on-screen section controls. The scenes transition progressively instead of using conventional document scrolling.
 - Ask is available at /ask. It is the AI conversation the visitor is currently using, powered through OpenRouter and grounded in the public profile information stored in this codebase.
 - Writing is the complete article index at /blog, and individual articles are at /blog/[slug]. Articles are loaded from Notion and most can be read in English, Turkish, Spanish, German, and Italian with the language buttons on each article.

@@ -2,6 +2,13 @@
 
 import { type RefObject, useEffect, useRef } from "react";
 
+import {
+  EGG_EVENTS,
+  ORANGE_THEME,
+  type ParticleTheme,
+  onEgg,
+} from "@/lib/easter-eggs";
+
 export type BackdropFormation =
   | "halo"
   | "waves"
@@ -26,6 +33,12 @@ type Particle = {
   introDelay: number;
   offsetX: number;
   offsetY: number;
+  burstX: number;
+  burstY: number;
+  burstVX: number;
+  burstVY: number;
+  lastX: number;
+  lastY: number;
   size: number;
   alpha: number;
   sprite: number;
@@ -46,7 +59,17 @@ type Layout = {
 // scale (default 1) scales size.
 type Point = [x: number, y: number, depth: number, scale?: number];
 
-const PALETTE = ["255, 106, 0", "255, 138, 31", "255, 179, 71"];
+const PARTICLE_COLORS = ORANGE_THEME.colors.length;
+// Survives remounts so a theme picked in the terminal sticks while browsing.
+let currentTheme: ParticleTheme = ORANGE_THEME;
+
+// Easter egg tuning: fireworks bursts, the spelled name, and the warp boost.
+const BURST_STIFFNESS = 10;
+const BURST_DAMPING = 3.2;
+const SPELL_RISE = 0.9;
+const SPELL_HOLD = 3.4;
+const SPELL_FALL = 1.2;
+const SPELL_TEXT = "BLCNYY";
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const TAU = Math.PI * 2;
 const STAGGER = 0.4;
@@ -83,8 +106,8 @@ function smoothstep(t: number) {
   return t * t * (3 - 2 * t);
 }
 
-function createSprites() {
-  return PALETTE.map((rgb) => {
+function createSprites(theme: ParticleTheme) {
+  return theme.colors.map((rgb) => {
     const sprite = document.createElement("canvas");
     sprite.width = SPRITE_SIZE;
     sprite.height = SPRITE_SIZE;
@@ -112,7 +135,8 @@ function createSprites() {
   });
 }
 
-function createGlowSprite() {
+function createGlowSprite(theme: ParticleTheme) {
+  const [core, edge] = theme.glow;
   const size = 128;
   const sprite = document.createElement("canvas");
   sprite.width = size;
@@ -128,14 +152,64 @@ function createGlowSprite() {
       size / 2,
       size / 2,
     );
-    gradient.addColorStop(0, "rgba(255, 120, 20, 1)");
-    gradient.addColorStop(0.35, "rgba(255, 106, 0, 0.35)");
-    gradient.addColorStop(1, "rgba(255, 106, 0, 0)");
+    gradient.addColorStop(0, `rgba(${core}, 1)`);
+    gradient.addColorStop(0.35, `rgba(${edge}, 0.35)`);
+    gradient.addColorStop(1, `rgba(${edge}, 0)`);
     context.fillStyle = gradient;
     context.fillRect(0, 0, size, size);
   }
 
   return sprite;
+}
+
+// Samples points inside the rendered text, in layout units, shuffled so any
+// prefix covers the whole word evenly.
+function computeSpellTargets(text: string, layout: Layout): [number, number][] {
+  const { width, height, unit } = layout;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(width));
+  canvas.height = Math.max(1, Math.round(height));
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+
+  if (!context) {
+    return [];
+  }
+
+  const fontSize = Math.min(width * 0.2, height * 0.34);
+  context.font = `800 ${fontSize}px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillStyle = "#ffffff";
+  context.fillText(text, width / 2, height / 2);
+
+  const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+  const step = Math.max(2, Math.round(fontSize / 80));
+  const points: [number, number][] = [];
+
+  for (let y = 0; y < canvas.height; y += step) {
+    for (let x = 0; x < canvas.width; x += step) {
+      if (data[(y * canvas.width + x) * 4 + 3] > 128) {
+        points.push([(x - width / 2) / unit, (y - height / 2) / unit]);
+      }
+    }
+  }
+
+  for (let index = points.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(Math.random() * (index + 1));
+    [points[index], points[swap]] = [points[swap], points[index]];
+  }
+
+  return points;
+}
+
+function spellWeightAt(age: number) {
+  if (age < 0) return 0;
+  if (age < SPELL_RISE) return easeInOutCubic(age / SPELL_RISE);
+  if (age < SPELL_HOLD) return 1;
+  if (age < SPELL_HOLD + SPELL_FALL) {
+    return 1 - easeInOutCubic((age - SPELL_HOLD) / SPELL_FALL);
+  }
+  return 0;
 }
 
 function createParticles(count: number): Particle[] {
@@ -150,9 +224,15 @@ function createParticles(count: number): Particle[] {
       introDelay: (index / count) * INTRO_SWEEP + Math.random() * INTRO_SCATTER,
       offsetX: 0,
       offsetY: 0,
+      burstX: 0,
+      burstY: 0,
+      burstVX: 0,
+      burstVY: 0,
+      lastX: 0,
+      lastY: 0,
       size: bright ? 2.6 + Math.random() * 1.2 : 0.8 + Math.random() * 1.3,
       alpha: bright ? 0.9 : 0.3 + Math.random() * 0.45,
-      sprite: Math.floor(Math.random() * PALETTE.length),
+      sprite: Math.floor(Math.random() * PARTICLE_COLORS),
     };
   });
 }
@@ -334,11 +414,23 @@ function formationPoint(
       const scale = layout.wide ? 0.6 : 0.42;
       let point: [number, number];
 
-      if (r3 < 0.58) {
+      if (r3 < 0.5) {
         point = roundedRectPoint(r1 + time * 0.01, 1, 0.34);
-      } else if (r3 < 0.93) {
+      } else if (r3 < 0.76) {
         const angle = r1 * TAU + time * 0.08;
         point = [Math.cos(angle) * 0.44, Math.sin(angle) * 0.44];
+      } else if (r3 < 0.94) {
+        // A play button inside the lens, for the YouTube channel.
+        const corners: [number, number][] = [
+          [0.25, 0],
+          [-0.13, -0.22],
+          [-0.13, 0.22],
+        ];
+        const edge = Math.min(2, Math.floor(r1 * 3));
+        const along = r1 * 3 - edge;
+        const [startX, startY] = corners[edge];
+        const [endX, endY] = corners[(edge + 1) % 3];
+        point = [startX + (endX - startX) * along, startY + (endY - startY) * along];
       } else {
         const angle = r1 * TAU;
         point = [0.62 + Math.cos(angle) * 0.07 * r2, -0.62 + Math.sin(angle) * 0.07 * r2];
@@ -393,7 +485,7 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
       "(prefers-reduced-motion: reduce)",
     ).matches;
     const playIntro = !reduceMotion && !introPlayed;
-    const sprites = createSprites();
+    let sprites = createSprites(currentTheme);
     const pointer = {
       x: 0,
       y: 0,
@@ -404,7 +496,14 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
       strength: 0,
       active: false,
     };
-    const glowSprite = createGlowSprite();
+    let glowSprite = createGlowSprite(currentTheme);
+    let spellTargets: [number, number][] = [];
+    let spellStart = Number.NEGATIVE_INFINITY;
+    let burstEnergy = 0;
+    let warpBoost = 0;
+    let warpBoostTarget = 0;
+    let warpTime = 0;
+    let lastFrame = performance.now();
     const startTime = performance.now();
     let layout = getLayout(1, 1, 1);
     let particles: Particle[] = [];
@@ -471,7 +570,13 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
 
       const position = clamp(positionRef.current ?? 0, 0, formations.length - 1);
 
-      if (reduceMotion && !needsDraw && position === lastPosition) {
+      const delta = Math.min(now - lastFrame, 100) / 1000;
+      lastFrame = now;
+      const spellWeight = spellWeightAt((now - spellStart) / 1000);
+      burstEnergy *= 0.97;
+      const effectsActive = spellWeight > 0 || burstEnergy > 0.01;
+
+      if (reduceMotion && !needsDraw && !effectsActive && position === lastPosition) {
         return;
       }
 
@@ -479,6 +584,15 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
       needsDraw = false;
 
       const time = reduceMotion ? 0 : (now - startTime) / 1000;
+      warpBoost += (warpBoostTarget - warpBoost) * 0.06;
+
+      if (!reduceMotion) {
+        // The warp tunnel keeps its own clock so it can speed up smoothly.
+        warpTime += delta * (1 + warpBoost * 5);
+      }
+
+      const timeFor = (formation: BackdropFormation) =>
+        formation === "warp" ? warpTime : time;
       const introTime = playIntro ? time : Number.POSITIVE_INFINITY;
       const introActive = introTime < INTRO_TOTAL;
 
@@ -560,13 +674,35 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
         x += particle.offsetX;
         y += particle.offsetY;
 
+        if (particle.burstVX || particle.burstVY || particle.burstX || particle.burstY) {
+          // Damped spring: fly out, overshoot slightly, settle back.
+          particle.burstVX += (-BURST_STIFFNESS * particle.burstX - BURST_DAMPING * particle.burstVX) * delta;
+          particle.burstVY += (-BURST_STIFFNESS * particle.burstY - BURST_DAMPING * particle.burstVY) * delta;
+          particle.burstX += particle.burstVX * delta;
+          particle.burstY += particle.burstVY * delta;
+
+          if (Math.abs(particle.burstX) + Math.abs(particle.burstVX) < 0.0005) {
+            particle.burstX = 0;
+            particle.burstY = 0;
+            particle.burstVX = 0;
+            particle.burstVY = 0;
+          }
+        }
+
+        x += particle.burstX;
+        y += particle.burstY;
+        particle.lastX = x;
+        particle.lastY = y;
+        const burstGlow = 1 + Math.min(1.4, Math.hypot(particle.burstVX, particle.burstVY) * 0.25);
+
         const parallax = 0.04 * (0.4 + particle.r3);
         const screenX = (centerX + (x - pointer.x * parallax) * unit) * dpr;
         const screenY = (centerY + (y - pointer.y * parallax) * unit) * dpr;
-        const size = particle.size * 4 * dpr * scale * (1 + (fieldGlow - 1) * 0.3);
+        const size =
+          particle.size * 4 * dpr * scale * (1 + (fieldGlow - 1) * 0.3) * burstGlow;
 
         context.globalAlpha = clamp(
-          particle.alpha * depth * intensity * glow * fieldGlow,
+          particle.alpha * depth * intensity * glow * fieldGlow * burstGlow,
           0,
           1,
         );
@@ -581,11 +717,18 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
 
       for (let index = 0; index < particles.length; index += 1) {
         const particle = particles[index];
-        const a = formationPoint(from, index, particles.length, particle, time, layout);
+        const a = formationPoint(
+          from,
+          index,
+          particles.length,
+          particle,
+          timeFor(from),
+          layout,
+        );
         const b =
           from === to
             ? a
-            : formationPoint(to, index, particles.length, particle, time, layout);
+            : formationPoint(to, index, particles.length, particle, timeFor(to), layout);
         const local = clamp((progress * (1 + STAGGER) - particle.delay), 0, 1);
         const eased = easeInOutCubic(local);
         // Bend each path sideways mid-flight so shapes swirl into each other.
@@ -622,11 +765,20 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
           }
         }
 
+        let depth = a[2] + (b[2] - a[2]) * eased;
+
+        if (spellWeight > 0 && spellTargets.length) {
+          const [targetX, targetY] = spellTargets[index % spellTargets.length];
+          x += (targetX - x) * spellWeight;
+          y += (targetY - y) * spellWeight;
+          depth += (1 - depth) * spellWeight;
+        }
+
         drawParticle(
           particle,
           x,
           y,
-          a[2] + (b[2] - a[2]) * eased,
+          depth,
           introScale * ((a[3] ?? 1) + ((b[3] ?? 1) - (a[3] ?? 1)) * eased),
           introGlow,
         );
@@ -640,8 +792,20 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
         const expand = easeOutQuart(finaleWeight);
 
         for (const particle of finaleParticles) {
-          const [x, y, depth, scale = 1] = warpStreamPoint(particle, time, layout, 1.25);
-          drawParticle(particle, x * expand, y * expand, depth, scale, finaleWeight);
+          const [x, y, depth, scale = 1] = warpStreamPoint(
+            particle,
+            warpTime,
+            layout,
+            1.25,
+          );
+          drawParticle(
+            particle,
+            x * expand,
+            y * expand,
+            depth,
+            scale * (1 + warpBoost * 0.6),
+            finaleWeight * (1 + warpBoost * 0.7),
+          );
         }
       }
 
@@ -669,6 +833,37 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
     resizeObserver.observe(canvas);
     resize();
     window.addEventListener("pointermove", trackPointer, { passive: true });
+
+    const burst = () => {
+      burstEnergy = 1;
+
+      for (const particle of [...particles, ...finaleParticles]) {
+        const angle =
+          Math.atan2(particle.lastY, particle.lastX) + (Math.random() - 0.5) * 0.8;
+        const speed = 2.2 + Math.random() * 4.2;
+        particle.burstVX += Math.cos(angle) * speed;
+        particle.burstVY += Math.sin(angle) * speed;
+      }
+    };
+
+    const stopEggs = [
+      onEgg(EGG_EVENTS.burst, burst),
+      onEgg(EGG_EVENTS.spell, () => {
+        spellTargets = computeSpellTargets(SPELL_TEXT, layout);
+        spellStart = performance.now();
+      }),
+      onEgg<ParticleTheme>(EGG_EVENTS.theme, (theme) => {
+        if (theme?.colors?.length === PARTICLE_COLORS) {
+          currentTheme = theme;
+          sprites = createSprites(theme);
+          glowSprite = createGlowSprite(theme);
+          needsDraw = true;
+        }
+      }),
+      onEgg<number>(EGG_EVENTS.warpBoost, (boost) => {
+        warpBoostTarget = clamp(Number(boost) || 0, 0, 1);
+      }),
+    ];
     document.addEventListener("mouseout", releasePointer);
     window.addEventListener("blur", deactivatePointer);
     frame = window.requestAnimationFrame(render);
@@ -677,6 +872,7 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
       window.cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       window.removeEventListener("pointermove", trackPointer);
+      stopEggs.forEach((stop) => stop());
       document.removeEventListener("mouseout", releasePointer);
       window.removeEventListener("blur", deactivatePointer);
     };
