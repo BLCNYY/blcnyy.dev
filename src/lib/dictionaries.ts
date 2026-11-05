@@ -50,6 +50,7 @@ const en = {
     articleTopics: "Article topics",
     askTitle: "Want to go deeper?",
     askCta: "Just Ask!",
+    comingSoon: "Coming soon",
     social: {
       title: "Tech and AI, now in Turkish.",
       body: "I also make tech and AI content in Turkish on Instagram and YouTube, for anyone who'd rather keep up with what's new in their own language.",
@@ -198,7 +199,7 @@ const en = {
         ["whoami", "who are you?"],
         ["about", "a short intro"],
         ["ls", "list what's here"],
-        ["projects", "Duly and Salah[Now]"],
+        ["projects", "Duly, Salah[Now], and Purrloader"],
         ["open <name>", "open duly, salah, x, instagram, youtube, github, blog, ask"],
         ["ask <question>", "ask the AI profile anything"],
         ["theme <color>", "recolor the particles: blue, purple, #ff3366, rainbow…"],
@@ -211,7 +212,7 @@ const en = {
       whoami:
         "visitor. Curious enough to find a hidden terminal. Respect. 🫡",
       about:
-        "Ömer Balkan (BLCNYY). Vibe-coder and tech enthusiast from İstanbul, building Duly and Salah[Now] and writing about tech and AI.",
+        "Ömer Balkan (BLCNYY). Vibe-coder and tech enthusiast from İstanbul, building Duly, Salah[Now], and Purrloader and writing about tech and AI.",
       ls: "projects/   articles/   story.md   secrets.txt",
       notFound: (command: string) =>
         `zsh: command not found: ${command}. Try 'help'.`,
@@ -348,6 +349,7 @@ const tr: Dictionary = {
     articleTopics: "Yazı konuları",
     askTitle: "Daha fazlasını mı merak ediyorsun?",
     askCta: "Hemen sor!",
+    comingSoon: "Çok yakında",
     social: {
       title: "Teknoloji ve yapay zekâ, artık Türkçe.",
       body: "Instagram ve YouTube'da Türkçe teknoloji ve yapay zekâ içerikleri de üretiyorum. Yenilikleri kendi dilinde takip etmek isteyen herkes için.",
@@ -497,7 +499,7 @@ const tr: Dictionary = {
         ["whoami", "sen kimsin?"],
         ["about", "kısa bir tanıtım"],
         ["ls", "burada neler var"],
-        ["projects", "Duly ve Salah[Now]"],
+        ["projects", "Duly, Salah[Now] ve Purrloader"],
         ["open <ad>", "duly, salah, x, instagram, youtube, github, blog, ask aç"],
         ["ask <soru>", "yapay zekâ profiline soru sor"],
         ["theme <renk>", "parçacıkları renklendir: blue, purple, #ff3366, rainbow…"],
@@ -509,7 +511,7 @@ const tr: Dictionary = {
       ],
       whoami: "ziyaretçi. Gizli bir terminal bulacak kadar meraklı. Saygılar. 🫡",
       about:
-        "Ömer Balkan (BLCNYY). İstanbul'dan bir vibe-coder ve teknoloji meraklısı; Duly ve Salah[Now] üzerinde çalışıyor, teknoloji ve yapay zekâ hakkında yazıyor.",
+        "Ömer Balkan (BLCNYY). İstanbul'dan bir vibe-coder ve teknoloji meraklısı; Duly, Salah[Now] ve Purrloader üzerinde çalışıyor, teknoloji ve yapay zekâ hakkında yazıyor.",
       ls: "projects/   articles/   story.md   secrets.txt",
       notFound: (command: string) =>
         `zsh: komut bulunamadı: ${command}. 'help' yazmayı dene.`,

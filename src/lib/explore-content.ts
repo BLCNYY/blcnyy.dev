@@ -5,14 +5,16 @@ import type { NotionPost } from "@/lib/notion";
 export type ExploreProjectLink = {
   label: string;
   url: string;
-  kind?: "testflight";
+  kind?: "app-store";
 };
 
 export type ExploreProject = {
   id: string;
   name: string;
   statement: string;
-  summary: string;
+  summary?: string;
+  // Not released yet: the scene shows a "Coming soon" badge in place of links.
+  status?: "coming-soon";
   links: ExploreProjectLink[];
 };
 
@@ -36,7 +38,8 @@ type ExploreContent = {
 };
 
 export const DULY_URL = "https://useduly.app";
-export const DULY_TESTFLIGHT_URL = "https://testflight.apple.com/join/kfb4yZDc";
+export const DULY_APP_STORE_URL =
+  "https://apps.apple.com/app/duly-life-organizer/id6817079222";
 export const SALAH_NOW_URL = "https://salahnow.app";
 
 const exploreContent: Record<Locale, ExploreContent> = {
@@ -52,9 +55,13 @@ const exploreContent: Record<Locale, ExploreContent> = {
         name: "Duly",
         statement: "Say it once. It's organized.",
         summary:
-          "An app that turns a quick voice ramble into reminders, lists, ideas, and notes. The public beta is open on TestFlight.",
+          "An app that turns a quick voice ramble into reminders, lists, ideas, and notes. Now on the App Store for iPhone and iPad.",
         links: [
-          { label: "Join TestFlight", url: DULY_TESTFLIGHT_URL, kind: "testflight" },
+          {
+            label: "Get it on the App Store",
+            url: DULY_APP_STORE_URL,
+            kind: "app-store",
+          },
           { label: "useduly.app", url: DULY_URL },
         ],
       },
@@ -65,6 +72,13 @@ const exploreContent: Record<Locale, ExploreContent> = {
         summary:
           "A minimal, ad-free prayer times service with location support and a Qibla finder.",
         links: [{ label: "salahnow.app", url: SALAH_NOW_URL }],
+      },
+      {
+        id: "purrloader",
+        name: "Purrloader",
+        statement: "Save videos and audio from the web easily.",
+        status: "coming-soon",
+        links: [],
       },
     ],
   },
@@ -80,9 +94,13 @@ const exploreContent: Record<Locale, ExploreContent> = {
         name: "Duly",
         statement: "Bir kere söyle, gerisi düzenli.",
         summary:
-          "Sesli anlattıklarını hatırlatmalara, listelere, fikirlere ve notlara dönüştüren bir uygulama. Herkese açık betası TestFlight'ta.",
+          "Sesli anlattıklarını hatırlatmalara, listelere, fikirlere ve notlara dönüştüren bir uygulama. Artık iPhone ve iPad için App Store'da.",
         links: [
-          { label: "TestFlight'a katıl", url: DULY_TESTFLIGHT_URL, kind: "testflight" },
+          {
+            label: "App Store'dan indir",
+            url: DULY_APP_STORE_URL,
+            kind: "app-store",
+          },
           { label: "useduly.app", url: DULY_URL },
         ],
       },
@@ -93,6 +111,13 @@ const exploreContent: Record<Locale, ExploreContent> = {
         summary:
           "Konum desteği ve kıble bulucusuyla sade, reklamsız bir namaz vakitleri servisi.",
         links: [{ label: "salahnow.app", url: SALAH_NOW_URL }],
+      },
+      {
+        id: "purrloader",
+        name: "Purrloader",
+        statement: "Web'deki videoları ve sesleri kolayca kaydet.",
+        status: "coming-soon",
+        links: [],
       },
     ],
   },

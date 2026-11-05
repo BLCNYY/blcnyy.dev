@@ -11,6 +11,7 @@ import {
   localeNames,
   locales,
   localizePath,
+  rememberLocale,
   stripLocale,
   type Locale,
 } from "@/lib/i18n";
@@ -142,7 +143,10 @@ function LanguageMenu({
                 lang={option}
                 aria-current={isCurrent ? "true" : undefined}
                 className="site-language-option"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  rememberLocale(option);
+                  setIsOpen(false);
+                }}
               >
                 <span>{localeNames[option]}</span>
                 {isCurrent ? (

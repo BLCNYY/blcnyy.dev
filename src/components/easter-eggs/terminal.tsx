@@ -20,12 +20,18 @@ import {
   unlockSecret,
 } from "@/lib/easter-eggs";
 import {
-  DULY_TESTFLIGHT_URL,
+  DULY_APP_STORE_URL,
   DULY_URL,
   SALAH_NOW_URL,
   getExploreContent,
 } from "@/lib/explore-content";
-import { isLocale, localizePath, stripLocale, type Locale } from "@/lib/i18n";
+import {
+  isLocale,
+  localizePath,
+  rememberLocale,
+  stripLocale,
+  type Locale,
+} from "@/lib/i18n";
 import { socialLinks } from "@/lib/site";
 
 type LineKind = "input" | "output" | "error" | "accent";
@@ -161,7 +167,7 @@ export function Terminal({
     };
     const external: Record<string, string> = {
       duly: DULY_URL,
-      testflight: DULY_TESTFLIGHT_URL,
+      appstore: DULY_APP_STORE_URL,
       salah: SALAH_NOW_URL,
       x: socialUrl("X"),
       instagram: socialUrl("Instagram"),
@@ -264,7 +270,7 @@ export function Terminal({
         break;
       case "ls":
         if (args[0]?.startsWith("projects")) {
-          print("duly/   salah-now/");
+          print("duly/   salah-now/   purrloader/");
         } else if (args[0]?.startsWith("articles")) {
           openTarget("blog");
         } else {
@@ -286,6 +292,10 @@ export function Terminal({
         getExploreContent(locale).projects.forEach((project) => {
           print(`${project.name}  ${project.statement}`, "accent");
           project.links.forEach((link) => print(`  ↳ ${link.url}`));
+
+          if (project.status === "coming-soon") {
+            print(`  ↳ ${dictionary.explore.comingSoon}`);
+          }
         });
         break;
       case "open":
@@ -315,6 +325,7 @@ export function Terminal({
         const target = args[0]?.toLowerCase();
 
         if (isLocale(target)) {
+          rememberLocale(target);
           router.push(localizePath(target, stripLocale(pathname)));
           onClose();
         } else {

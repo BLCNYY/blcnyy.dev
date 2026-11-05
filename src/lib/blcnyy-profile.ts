@@ -11,7 +11,7 @@ export const profile = {
     summary:
       "Ömer Balkan is a student builder from İstanbul creating at the intersection of AI, design, and internet products.",
     shortBio:
-      "He shares ideas publicly, experiments with emerging tools, and builds practical projects like Duly, Salah[Now], and blcnyy.dev.",
+      "He shares ideas publicly, experiments with emerging tools, and builds practical projects like Duly, Salah[Now], Purrloader, and blcnyy.dev.",
     longerBio:
       "Ömer Balkan is a young internet-native builder from İstanbul, Türkiye, known for his interest in AI, product design, and practical software. As a student, he has built a public identity around exploring new tools early, sharing product thoughts online, and using AI-assisted workflows to turn ideas into real projects.",
     currentFocus:
@@ -179,8 +179,16 @@ export const profile = {
         "Free to use every day with daily limits; Duly Pro adds more daily usage, iCloud Sync, and list sharing.",
         "Recordings stay on the device; to organize a ramble, its text and relevant saved items are sent to Duly's server and an AI service. No ads.",
         "Localized in English, Turkish, German, Spanish, French, and Japanese.",
-        "A public beta is open on TestFlight: https://testflight.apple.com/join/kfb4yZDc",
+        "Available now on the App Store for iPhone and iPad: https://apps.apple.com/app/duly-life-organizer/id6817079222",
         "Website: https://useduly.app",
+      ],
+    },
+    {
+      name: "Purrloader",
+      summary:
+        "An upcoming project from Ömer for saving videos and audio from the web easily. It is coming soon and has not been released yet.",
+      details: [
+        "Status: coming soon. There is no release date, download link, or website for it yet.",
       ],
     },
     {
@@ -190,8 +198,8 @@ export const profile = {
         "Ömer's personal website, with a scene-based Explore experience, an AI profile called Ask, and a Notion-backed blog, available in English and Turkish.",
       details: [
         "Built with Next.js.",
-        "The top navigation has three items: Explore, Writing, and Ask, plus a globe button that opens a language menu (English or Türkçe). The Turkish version lives under /tr.",
-        "Explore at / presents scenes for his identity (with links to X, Instagram, YouTube, and GitHub), introduction, story, Duly, Salah[Now], his Turkish content on Instagram and YouTube, latest articles, and an invitation to Ask.",
+        "The top navigation has three items: Explore, Writing, and Ask, plus a globe button that opens a language menu (English or Türkçe). The Turkish version lives under /tr, and visitors whose browser or system language is Turkish land on it automatically.",
+        "Explore at / presents scenes for his identity (with links to X, Instagram, YouTube, and GitHub), introduction, story, Duly, Salah[Now], Purrloader (coming soon), his Turkish content on Instagram and YouTube, latest articles, and an invitation to Ask.",
         "Ask at /ask is an AI profile grounded in src/lib/blcnyy-profile.ts, where visitors can ask about Ömer's story, work, interests, and projects.",
         "Published writing is available under Writing at /blog.",
         "The blog is Notion-backed, and most articles can be read in English, Turkish, Spanish, German, and Italian.",
@@ -248,7 +256,7 @@ export const profile = {
     "He is from İstanbul, Türkiye.",
     "He is a student.",
     "He is interested in tech, AI, design, and building products.",
-    "He has public projects including Duly, blcnyy.dev, Salah[Now], and Subzeez.",
+    "He has public projects including Duly, blcnyy.dev, Salah[Now], and Subzeez, and an upcoming one called Purrloader.",
     "He has built a public online presence around AI and internet products.",
     "He uses AI-assisted workflows to build.",
     "He shares public thoughts on X, makes Turkish tech and AI content on Instagram, and makes Turkish videos on YouTube.",
@@ -292,7 +300,7 @@ export const profile = {
     {
       question: "What projects has he worked on publicly?",
       answer:
-        "Publicly referenced projects include Duly, blcnyy.dev, Salah[Now], and Subzeez.",
+        "Publicly referenced projects include Duly, blcnyy.dev, Salah[Now], and Subzeez. Purrloader, for saving videos and audio from the web, is coming soon.",
     },
     {
       question: "What is Duly?",
@@ -302,7 +310,7 @@ export const profile = {
     {
       question: "How can I try Duly?",
       answer:
-        "Duly has a public beta on TestFlight. Open https://testflight.apple.com/join/kfb4yZDc on an iPhone or iPad to join.",
+        "Duly is available on the App Store for iPhone and iPad: https://apps.apple.com/app/duly-life-organizer/id6817079222",
     },
     {
       question: "What is blcnyy.dev?",
@@ -463,11 +471,11 @@ function ageFactsSection(asOfDate: Date) {
 function projectsSection() {
   return [
     "## Projects",
-    ...profile.projects.flatMap(({ name, url, summary, details }) => [
-      `### ${name}`,
-      `URL: ${url}`,
-      `Summary: ${summary}`,
-      ...details.map((detail) => `- ${detail}`),
+    ...profile.projects.flatMap((project) => [
+      `### ${project.name}`,
+      `URL: ${"url" in project ? project.url : "not released yet"}`,
+      `Summary: ${project.summary}`,
+      ...project.details.map((detail) => `- ${detail}`),
       "",
     ]),
   ];

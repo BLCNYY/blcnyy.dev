@@ -15,6 +15,7 @@ export type BackdropFormation =
   | "spiral"
   | "orb"
   | "compass"
+  | "cat"
   | "lattice"
   | "camera"
   | "starfield"
@@ -71,6 +72,9 @@ const SPELL_HOLD = 3.4;
 const SPELL_FALL = 1.2;
 const SPELL_TEXT = "BLCNYY";
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+// The cat formation is drawn in its icon's 1024-unit space.
+const CAT_SCALE = 0.0026;
+const CAT_HEAD_CURVE = 2 / 2.6;
 const TAU = Math.PI * 2;
 const STAGGER = 0.4;
 const SPRITE_SIZE = 32;
@@ -407,6 +411,72 @@ function formationPoint(
         Math.sin(heading) * along * 0.5 + Math.cos(heading) * width,
         along > 0 ? 1 : 0.45,
       ];
+    }
+    case "cat": {
+      // Purrloader's icon, traced in the icon's own 1024-unit coordinates:
+      // a cat head with pointed ears, blinking eyes, and a down-arrow nose
+      // that particles stream through like a download.
+      if (r3 < 0.08) {
+        return starfieldPoint(particle, time, layout);
+      }
+
+      const toPoint = (x: number, y: number, depth: number): Point => [
+        layout.side + (x - 512) * CAT_SCALE,
+        (y - 512) * CAT_SCALE,
+        depth,
+      ];
+      const jitterX = (r2 - 0.5) * 14;
+      const jitterY = (((r2 * 7.13) % 1) - 0.5) * 14;
+
+      if (r3 < 0.48) {
+        // Head: a superellipse close to the icon's rounded rectangle.
+        const angle = r1 * TAU + time * 0.04;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const x = 240 * Math.sign(cos) * Math.abs(cos) ** CAT_HEAD_CURVE;
+        const y = 190 * Math.sign(sin) * Math.abs(sin) ** CAT_HEAD_CURVE;
+        return toPoint(512 + x + jitterX, 570 + y + jitterY, 0.85);
+      }
+
+      if (r3 < 0.66) {
+        // Ears: each edge runs from the tip down to where it meets the head.
+        const edge = Math.min(3, Math.floor(r1 * 4));
+        const along = (r1 * 4) % 1;
+        const [endX, endY, reach] = edge % 2 === 0 ? [300, 516, 0.7] : [486, 408, 0.8];
+        const x = 336 + (endX - 336) * along * reach;
+        const y = 274 + (endY - 274) * along * reach;
+        return toPoint((edge < 2 ? x : 1024 - x) + jitterX, y + jitterY, 0.9);
+      }
+
+      if (r3 < 0.76) {
+        const blinkPhase = (time % 4.6) / 0.24;
+        const blink =
+          blinkPhase < 1 ? 0.12 + 0.88 * Math.abs(Math.cos(blinkPhase * Math.PI)) : 1;
+        const angle = r1 * TAU;
+        const radius = Math.sqrt(r2) * 30;
+        return toPoint(
+          (index % 2 === 0 ? 424 : 600) + Math.cos(angle) * radius,
+          494 + Math.sin(angle) * radius * blink,
+          1,
+        );
+      }
+
+      if (r3 < 0.86) {
+        const flow = (r1 + time * 0.35) % 1;
+        return toPoint(
+          512 + jitterX * 0.6,
+          506 + flow * 150,
+          (0.5 + 0.5 * flow) * Math.min(1, flow * 5),
+        );
+      }
+
+      const side = r1 < 0.5 ? -1 : 1;
+      const along = (r1 % 0.5) * 2;
+      return toPoint(
+        512 + side * 60 * (1 - along) + jitterX * 0.6,
+        596 + along * 60 + jitterY * 0.6,
+        1,
+      );
     }
     case "camera": {
       const centerX = layout.wide ? layout.side + 0.05 : 0;
