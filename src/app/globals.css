@@ -594,43 +594,13 @@ html.explore-locked body {
   margin-top: -0.12rem;
 }
 
-/* Sits where the download button would be for projects not released yet. */
-.project-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.68rem 1.2rem 0.68rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.045);
-  color: rgba(255, 255, 255, 0.86);
+/* Plain text where the download button would be for unreleased projects. */
+.project-status {
+  color: rgba(255, 255, 255, 0.78);
   font-family: var(--font-mono), "SFMono-Regular", monospace;
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
+  font-size: 0.83rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.project-status-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: var(--orange-bright);
-  box-shadow: 0 0 0 0 rgba(255, 154, 31, 0.55);
-  animation: project-status-pulse 2.4s ease-out infinite;
-}
-
-@keyframes project-status-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 154, 31, 0.55);
-  }
-
-  70%,
-  100% {
-    box-shadow: 0 0 0 0.55rem rgba(255, 154, 31, 0);
-  }
 }
 
 .project-links .scene-text-link {
@@ -2253,11 +2223,6 @@ html.explore-locked body {
     font-size: 0.9rem;
   }
 
-  .project-status-badge {
-    padding: 0.52rem 1rem 0.52rem 0.85rem;
-    font-size: 0.74rem;
-  }
-
   .social-scene-copy {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2439,8 +2404,7 @@ html.explore-locked body {
     transform: none;
   }
 
-  .site-language-menu,
-  .project-status-dot {
+  .site-language-menu {
     animation: none;
   }
 

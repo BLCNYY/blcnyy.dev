@@ -187,10 +187,7 @@ function ProjectScene({
         ) : null}
         <div className="project-links">
           {project.status === "coming-soon" ? (
-            <span className="project-status-badge">
-              <span className="project-status-dot" aria-hidden="true" />
-              {comingSoonLabel}
-            </span>
+            <span className="project-status">{comingSoonLabel}</span>
           ) : null}
           {project.links.map((link) =>
             link.kind === "app-store" ? (
