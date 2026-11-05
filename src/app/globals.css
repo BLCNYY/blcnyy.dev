@@ -24,7 +24,8 @@ body {
   margin: 0;
   min-height: 100vh;
   overflow-x: hidden;
-  background: var(--background);
+  /* The page color comes from html, so the particle field shows through. */
+  background: transparent;
   color: var(--foreground);
   font-family:
     ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -75,7 +76,7 @@ html.explore-locked body {
   left: 50%;
   display: flex;
   gap: 8px;
-  width: min(438px, calc(100vw - 32px));
+  width: min(504px, calc(100vw - 32px));
   transform: translateX(-50%);
 }
 
@@ -149,7 +150,8 @@ html.explore-locked body {
   flex: 0 0 auto;
 }
 
-.site-language-button {
+.site-language-button,
+.site-sound-button {
   display: grid;
   width: 58px;
   height: 58px;
@@ -171,14 +173,44 @@ html.explore-locked body {
 }
 
 .site-language-button:hover,
-.site-language-button[aria-expanded="true"] {
+.site-language-button[aria-expanded="true"],
+.site-sound-button:hover {
   border-color: rgba(255, 138, 31, 0.45);
   color: #ffffff;
 }
 
-.site-language-icon {
+.site-language-icon,
+.site-sound-icon {
   width: 1.3rem;
   height: 1.3rem;
+}
+
+.site-sound-button {
+  flex: 0 0 auto;
+}
+
+.site-sound-button[aria-pressed="true"] {
+  color: #ffffff;
+}
+
+/* The sound waves pulse softly while sound is on. */
+.site-sound-wave {
+  animation: site-sound-wave 2.4s ease-in-out infinite;
+}
+
+.site-sound-wave.is-outer {
+  animation-delay: 0.3s;
+}
+
+@keyframes site-sound-wave {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
 }
 
 .site-language-menu {
@@ -266,6 +298,7 @@ html.explore-locked body {
 
 .site-mode-link:focus-visible,
 .site-language-button:focus-visible,
+.site-sound-button:focus-visible,
 .scene-progress button:focus-visible,
 .scene-advance:focus-visible,
 .ask-depth-button:focus-visible,
@@ -291,9 +324,7 @@ html.explore-locked body {
   opacity: 0;
   overscroll-behavior: none;
   touch-action: pan-x pinch-zoom;
-  background:
-    radial-gradient(circle at 50% 110%, rgba(255, 92, 0, 0.08), transparent 38%),
-    #000000;
+  background: radial-gradient(circle at 50% 110%, rgba(255, 92, 0, 0.08), transparent 38%);
   transition: opacity 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -322,8 +353,9 @@ html.explore-locked body {
   transform: translate3d(22%, -18%, 0);
 }
 
-.explore-backdrop {
-  position: absolute;
+/* One particle field behind every page, kept across navigation. */
+.site-backdrop {
+  position: fixed;
   z-index: -1;
   inset: 0;
   width: 100%;
@@ -1297,9 +1329,7 @@ html.explore-locked body {
 .reading-page {
   min-height: 100vh;
   padding: 9rem clamp(1.25rem, 6vw, 6rem) 6rem;
-  background:
-    radial-gradient(circle at 50% 0, rgba(255, 106, 0, 0.065), transparent 32rem),
-    #000000;
+  background: radial-gradient(circle at 50% 0, rgba(255, 106, 0, 0.065), transparent 32rem);
 }
 
 .reading-header,
@@ -1730,14 +1760,15 @@ html.explore-locked body {
   .site-mode-nav {
     top: max(14px, calc(env(safe-area-inset-top) + 6px));
     gap: 6px;
-    width: min(400px, calc(100vw - 28px));
+    width: min(458px, calc(100vw - 28px));
   }
 
   .site-mode-control {
     height: 52px;
   }
 
-  .site-language-button {
+  .site-language-button,
+  .site-sound-button {
     width: 52px;
     height: 52px;
   }
@@ -2102,7 +2133,8 @@ html.explore-locked body {
     height: 46px;
   }
 
-  .site-language-button {
+  .site-language-button,
+  .site-sound-button {
     width: 46px;
     height: 46px;
   }
@@ -2391,6 +2423,7 @@ html.explore-locked body {
   .identity-links a,
   .article-language-switcher button,
   .site-language-button,
+  .site-sound-button,
   .site-language-option,
   .social-card,
   .app-store-button {
@@ -2404,7 +2437,8 @@ html.explore-locked body {
     transform: none;
   }
 
-  .site-language-menu {
+  .site-language-menu,
+  .site-sound-wave {
     animation: none;
   }
 

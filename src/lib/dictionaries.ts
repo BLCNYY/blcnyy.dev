@@ -9,6 +9,8 @@ const en = {
     ask: "Ask",
     changeLanguage: "Change language",
     languages: "Languages",
+    soundOn: "Turn sound on",
+    soundOff: "Turn sound off",
   },
   meta: {
     siteDescription:
@@ -175,6 +177,10 @@ const en = {
         name: "Runaway page",
         hint: "Get lost.",
       },
+      cat: {
+        name: "Happy cat",
+        hint: "Some loaders like a little attention.",
+      },
     },
     console: {
       greeting: "Hey developer 👋 Curious, huh?",
@@ -307,6 +313,8 @@ const tr: Dictionary = {
     ask: "Sor",
     changeLanguage: "Dili değiştir",
     languages: "Diller",
+    soundOn: "Sesi aç",
+    soundOff: "Sesi kapat",
   },
   meta: {
     siteDescription:
@@ -474,6 +482,10 @@ const tr: Dictionary = {
       "runaway-page": {
         name: "Kaçak sayfa",
         hint: "Kaybol.",
+      },
+      cat: {
+        name: "Mutlu kedi",
+        hint: "Bazı yükleyiciler biraz ilgi sever.",
       },
     },
     console: {

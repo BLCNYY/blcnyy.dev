@@ -1,30 +1,29 @@
 "use client";
 
-import { type RefObject, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
+import {
+  playChime,
+  playChirp,
+  setPurr,
+  setSoundDucked,
+  setSoundMood,
+} from "@/lib/ambient-sound";
+import {
+  type BackdropFormation,
+  askSignal,
+  getExploreStage,
+} from "@/lib/backdrop-stage";
+import { requestTiltPermission, startTilt, tilt } from "@/lib/device-tilt";
 import {
   EGG_EVENTS,
   ORANGE_THEME,
   type ParticleTheme,
   onEgg,
+  unlockSecret,
 } from "@/lib/easter-eggs";
-
-export type BackdropFormation =
-  | "halo"
-  | "waves"
-  | "spiral"
-  | "orb"
-  | "compass"
-  | "cat"
-  | "lattice"
-  | "camera"
-  | "starfield"
-  | "warp";
-
-type ExploreBackdropProps = {
-  formations: readonly BackdropFormation[];
-  positionRef: RefObject<number>;
-};
+import { stripLocale } from "@/lib/i18n";
 
 type Particle = {
   r1: number;
@@ -40,6 +39,12 @@ type Particle = {
   burstVY: number;
   lastX: number;
   lastY: number;
+  // Where the particle was last drawn, before cursor and tilt effects, and
+  // where it was when the page changed.
+  baseX: number;
+  baseY: number;
+  handoffX: number;
+  handoffY: number;
   size: number;
   alpha: number;
   sprite: number;
@@ -75,6 +80,12 @@ const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 // The cat formation is drawn in its icon's 1024-unit space.
 const CAT_SCALE = 0.0026;
 const CAT_HEAD_CURVE = 2 / 2.6;
+// Petting the cat: happy eyes and a floating heart for this long.
+const CAT_PET_SECONDS = 2.3;
+// Changing pages: every particle flies from where it was into the new shape.
+const HANDOFF_SECONDS = 1.5;
+// How far, in layout units, tilting a phone shifts the nearest particles.
+const TILT_SHIFT = 0.16;
 const TAU = Math.PI * 2;
 const STAGGER = 0.4;
 const SPRITE_SIZE = 32;
@@ -234,6 +245,10 @@ function createParticles(count: number): Particle[] {
       burstVY: 0,
       lastX: 0,
       lastY: 0,
+      baseX: 0,
+      baseY: 0,
+      handoffX: 0,
+      handoffY: 0,
       size: bright ? 2.6 + Math.random() * 1.2 : 0.8 + Math.random() * 1.3,
       alpha: bright ? 0.9 : 0.3 + Math.random() * 0.45,
       sprite: Math.floor(Math.random() * PARTICLE_COLORS),
@@ -332,6 +347,46 @@ function starfieldPoint(particle: Particle, time: number, layout: Layout): Point
   ];
 }
 
+// Live values some formations react to, smoothed by the render loop.
+type Signals = {
+  // Ask's orb: a rotation clock and how hard it's thinking or speaking (0-1).
+  askPhase: number;
+  askThinking: number;
+  askVoice: number;
+  // The cat: where it looks (-1 to 1), how much it purrs, and petting.
+  catLookX: number;
+  catLookY: number;
+  catPurr: number;
+  catPet: number;
+  catPetAge: number;
+};
+
+const QUIET_SIGNALS: Signals = {
+  askPhase: 0,
+  askThinking: 0,
+  askVoice: 0,
+  catLookX: 0,
+  catLookY: 0,
+  catPurr: 0,
+  catPet: 0,
+  catPetAge: Number.POSITIVE_INFINITY,
+};
+
+// Petting fades in fast, holds, then lets go.
+function petEnvelope(age: number) {
+  if (age < 0 || age >= CAT_PET_SECONDS) return 0;
+  if (age < 0.15) return smoothstep(age / 0.15);
+  if (age < 1.8) return 1;
+  return 1 - smoothstep((age - 1.8) / (CAT_PET_SECONDS - 1.8));
+}
+
+// Whether a point in layout units is on the cat's head or ears.
+function isOnCat(x: number, y: number, layout: Layout) {
+  const dx = (x - layout.side) / (255 * CAT_SCALE);
+  const dy = (y - (520 - 512) * CAT_SCALE) / (250 * CAT_SCALE);
+  return dx * dx + dy * dy < 1;
+}
+
 function formationPoint(
   formation: BackdropFormation,
   index: number,
@@ -339,6 +394,7 @@ function formationPoint(
   particle: Particle,
   time: number,
   layout: Layout,
+  signals: Signals,
 ): Point {
   const { r1, r2, r3 } = particle;
 
@@ -414,49 +470,88 @@ function formationPoint(
     }
     case "cat": {
       // Purrloader's icon, traced in the icon's own 1024-unit coordinates:
-      // a cat head with pointed ears, blinking eyes, and a down-arrow nose
-      // that particles stream through like a download.
-      if (r3 < 0.08) {
-        return starfieldPoint(particle, time, layout);
-      }
-
+      // a cat head with pointed ears, eyes that follow you, and a down-arrow
+      // nose that particles stream through like a download. Hovering makes
+      // it purr; petting it closes its eyes happily and floats up a heart.
+      const { catLookX, catLookY, catPurr, catPet, catPetAge } = signals;
       const toPoint = (x: number, y: number, depth: number): Point => [
         layout.side + (x - 512) * CAT_SCALE,
         (y - 512) * CAT_SCALE,
         depth,
       ];
+
+      if (r3 < 0.08) {
+        const star = starfieldPoint(particle, time, layout);
+
+        if (catPet <= 0) {
+          return star;
+        }
+
+        const angle = r1 * TAU;
+        const heartX = 16 * Math.sin(angle) ** 3;
+        const heartY = -(
+          13 * Math.cos(angle) -
+          5 * Math.cos(2 * angle) -
+          2 * Math.cos(3 * angle) -
+          Math.cos(4 * angle)
+        );
+        const heart = toPoint(512 + heartX * 3.4, 330 - catPetAge * 40 + heartY * 3.4, 1);
+        return [
+          star[0] + (heart[0] - star[0]) * catPet,
+          star[1] + (heart[1] - star[1]) * catPet,
+          star[2] + (heart[2] - star[2]) * catPet,
+        ];
+      }
+
       const jitterX = (r2 - 0.5) * 14;
       const jitterY = (((r2 * 7.13) % 1) - 0.5) * 14;
 
       if (r3 < 0.48) {
-        // Head: a superellipse close to the icon's rounded rectangle.
+        // Head: a superellipse close to the icon's rounded rectangle. Purring
+        // shivers the outline along its normal.
         const angle = r1 * TAU + time * 0.04;
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
         const x = 240 * Math.sign(cos) * Math.abs(cos) ** CAT_HEAD_CURVE;
         const y = 190 * Math.sign(sin) * Math.abs(sin) ** CAT_HEAD_CURVE;
-        return toPoint(512 + x + jitterX, 570 + y + jitterY, 0.85);
+        const normal = Math.hypot(x / 240, y / 190) || 1;
+        const shiver = catPurr * Math.sin(time * 48 + r1 * 31) * 4;
+        return toPoint(
+          512 + x + jitterX + (x / 240 / normal) * shiver,
+          570 + y + jitterY + (y / 190 / normal) * shiver,
+          0.85 + catPurr * 0.12,
+        );
       }
 
       if (r3 < 0.66) {
         // Ears: each edge runs from the tip down to where it meets the head.
+        // Tips wiggle while the cat is petted.
         const edge = Math.min(3, Math.floor(r1 * 4));
         const along = (r1 * 4) % 1;
         const [endX, endY, reach] = edge % 2 === 0 ? [300, 516, 0.7] : [486, 408, 0.8];
-        const x = 336 + (endX - 336) * along * reach;
+        const wiggle =
+          catPet > 0 ? Math.sin(catPetAge * 22) * 16 * catPet * (1 - along) : 0;
+        const x = 336 + (endX - 336) * along * reach + wiggle;
         const y = 274 + (endY - 274) * along * reach;
         return toPoint((edge < 2 ? x : 1024 - x) + jitterX, y + jitterY, 0.9);
       }
 
       if (r3 < 0.76) {
+        const eyeX = (index % 2 === 0 ? 424 : 600) + catLookX * 14;
+        const eyeY = 494 + catLookY * 10;
         const blinkPhase = (time % 4.6) / 0.24;
         const blink =
           blinkPhase < 1 ? 0.12 + 0.88 * Math.abs(Math.cos(blinkPhase * Math.PI)) : 1;
         const angle = r1 * TAU;
         const radius = Math.sqrt(r2) * 30;
+        const openX = eyeX + Math.cos(angle) * radius;
+        const openY = eyeY + Math.sin(angle) * radius * blink;
+        // Happy closed eyes: a "^" arc.
+        const happyX = eyeX + (r1 - 0.5) * 64;
+        const happyY = eyeY + 10 - Math.sin(r1 * Math.PI) * 24 + (r2 - 0.5) * 7;
         return toPoint(
-          (index % 2 === 0 ? 424 : 600) + Math.cos(angle) * radius,
-          494 + Math.sin(angle) * radius * blink,
+          openX + (happyX - openX) * catPet,
+          openY + (happyY - openY) * catPet,
           1,
         );
       }
@@ -477,6 +572,45 @@ function formationPoint(
         596 + along * 60 + jitterY * 0.6,
         1,
       );
+    }
+    case "ask": {
+      // Ask's body: an orb that breathes when idle, tightens and spins while
+      // thinking, and ripples with the voice when an answer is read aloud.
+      const { askPhase: phase, askThinking: thinking, askVoice: voice } = signals;
+      const centerY = layout.wide ? -0.08 : -0.18;
+      const base = (layout.wide ? 0.5 : 0.44) * (1 - thinking * 0.3);
+
+      if (r3 < 0.74) {
+        const y0 = r2 * 2 - 1;
+        const ring = Math.sqrt(1 - y0 * y0);
+        const theta = r1 * TAU + phase;
+        const ripple =
+          1 +
+          Math.sin(time * 0.9) * 0.025 +
+          voice * (0.1 + 0.16 * Math.sin(theta * 3 + time * 7) * Math.cos(y0 * 4 - time * 5)) +
+          thinking * 0.06 * Math.sin(time * 6 + y0 * 9);
+        const x0 = Math.cos(theta) * ring * ripple;
+        const z0 = Math.sin(theta) * ring * ripple;
+        const yr = y0 * ripple;
+        const lean = 0.35;
+        const y1 = yr * Math.cos(lean) - z0 * Math.sin(lean);
+        const z1 = yr * Math.sin(lean) + z0 * Math.cos(lean);
+        const scale = (base * 2.4) / (2.4 - z1);
+        const pulse = 1 + thinking * 0.35 * Math.sin(time * 5 + y0 * 6);
+        return [x0 * scale, centerY + y1 * scale, (0.25 + 0.75 * ((z1 + 1) / 2)) * pulse];
+      }
+
+      // A tilted ring of particles orbits the orb.
+      const angle = r1 * TAU + phase * 1.7;
+      const radius = base * (1.6 + (r2 - 0.5) * 0.14 + voice * 0.12);
+      const ringX = Math.cos(angle) * radius;
+      const ringY = Math.sin(angle) * radius * 0.28;
+      const lean = -0.32;
+      return [
+        ringX * Math.cos(lean) - ringY * Math.sin(lean),
+        centerY + ringX * Math.sin(lean) + ringY * Math.cos(lean),
+        0.35 + 0.65 * (Math.sin(angle) > 0 ? 1 : 0.4),
+      ];
     }
     case "camera": {
       const centerX = layout.wide ? layout.side + 0.05 : 0;
@@ -540,21 +674,105 @@ function formationPoint(
   }
 }
 
-export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProps) {
+type RouteKind = "explore" | "ask" | "reading" | "other";
+
+type Stage = {
+  key: string;
+  formations: readonly BackdropFormation[];
+  position: number;
+  // Overall brightness, lowered where there's text to read.
+  dim: number;
+  mood: string;
+};
+
+const ASK_FORMATIONS: readonly BackdropFormation[] = ["ask"];
+const QUIET_FORMATIONS: readonly BackdropFormation[] = ["starfield"];
+// Explore's first shape, until the page reports all of its scenes.
+const EXPLORE_FALLBACK: readonly BackdropFormation[] = ["halo"];
+
+function getRouteKind(pathname: string): RouteKind {
+  const path = stripLocale(pathname);
+
+  if (path === "/") return "explore";
+  if (path === "/ask") return "ask";
+  if (path === "/blog" || path.startsWith("/blog/")) return "reading";
+  return "other";
+}
+
+function resolveStage(kind: RouteKind): Stage {
+  if (kind === "explore") {
+    const explore = getExploreStage();
+
+    if (explore?.formations.length) {
+      const { formations } = explore;
+      const position = clamp(explore.positionRef.current ?? 0, 0, formations.length - 1);
+
+      return {
+        key: `explore:${formations.join(",")}`,
+        formations,
+        position,
+        dim: 1,
+        mood: formations[Math.round(position)],
+      };
+    }
+
+    return { key: "explore", formations: EXPLORE_FALLBACK, position: 0, dim: 1, mood: "halo" };
+  }
+
+  if (kind === "ask") {
+    return {
+      key: "ask",
+      formations: ASK_FORMATIONS,
+      position: 0,
+      dim: askSignal.answerShown ? 0.55 : 1,
+      mood: "ask",
+    };
+  }
+
+  return {
+    key: kind,
+    formations: QUIET_FORMATIONS,
+    position: 0,
+    dim: kind === "reading" ? 0.4 : 0.7,
+    mood: kind === "reading" ? "reading" : "starfield",
+  };
+}
+
+function isInteractiveTarget(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    Boolean(target.closest("a, button, input, textarea, select, label, [contenteditable]"))
+  );
+}
+
+// One particle field behind every page. It lives in the root layout, so it
+// survives navigation: changing pages sends each particle from wherever it
+// was into the next page's shape.
+export function SiteBackdrop() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pathname = usePathname();
+  const routeRef = useRef<RouteKind>(getRouteKind(pathname));
+
+  useEffect(() => {
+    routeRef.current = getRouteKind(pathname);
+  }, [pathname]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
 
-    if (!canvas || !context || !formations.length) {
+    if (!canvas || !context) {
       return;
     }
 
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    const playIntro = !reduceMotion && !introPlayed;
+    const firstRoute = routeRef.current;
+    // The opening sweep belongs to Explore and Ask, not to reading pages.
+    const playIntro =
+      !reduceMotion && !introPlayed && (firstRoute === "explore" || firstRoute === "ask");
+    introPlayed ||= !playIntro;
     let sprites = createSprites(currentTheme);
     const pointer = {
       x: 0,
@@ -579,10 +797,38 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
     let particles: Particle[] = [];
     // Extra particles that only appear on the warp scene to fill the screen.
     let finaleParticles: Particle[] = [];
-    const warpIndex = formations.lastIndexOf("warp");
+    let finaleCarry = 0;
+    let stageKey: string | null = null;
+    let formations: readonly BackdropFormation[] = EXPLORE_FALLBACK;
+    let warpIndex = -1;
+    let catIndex = -1;
+    let currentPosition = 0;
+    let handoffStart = Number.NEGATIVE_INFINITY;
+    let dim = resolveStage(firstRoute).dim;
+    let mood: string | null = null;
+    let askPhase = 0;
+    let askThinking = 0;
+    let askVoice = 0;
+    const cat = {
+      lookX: 0,
+      lookY: 0,
+      purr: 0,
+      petStart: Number.NEGATIVE_INFINITY,
+    };
+    const lean = { x: 0, y: 0 };
     let frame = 0;
     let lastPosition = Number.NaN;
     let needsDraw = true;
+
+    const ensureFinale = () => {
+      const finaleCount = Math.round(
+        clamp((layout.width * layout.height) / 320, 900, 4200),
+      );
+
+      if (warpIndex >= 0 && finaleParticles.length !== finaleCount) {
+        finaleParticles = createParticles(finaleCount);
+      }
+    };
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -599,12 +845,7 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
         particles = createParticles(count);
       }
 
-      const finaleCount = Math.round(clamp((width * height) / 320, 900, 4200));
-
-      if (warpIndex >= 0 && finaleParticles.length !== finaleCount) {
-        finaleParticles = createParticles(finaleCount);
-      }
-
+      ensureFinale();
       needsDraw = true;
     };
 
@@ -638,13 +879,66 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
     const render = (now: number) => {
       frame = window.requestAnimationFrame(render);
 
-      const position = clamp(positionRef.current ?? 0, 0, formations.length - 1);
+      const kind = routeRef.current;
+      const stage = resolveStage(kind);
+
+      if (stage.key !== stageKey) {
+        if (stageKey !== null && !reduceMotion) {
+          handoffStart = now;
+
+          for (const particle of particles) {
+            particle.handoffX = particle.baseX;
+            particle.handoffY = particle.baseY;
+          }
+        }
+
+        stageKey = stage.key;
+        formations = stage.formations;
+        warpIndex = formations.lastIndexOf("warp");
+        catIndex = formations.indexOf("cat");
+        ensureFinale();
+        needsDraw = true;
+      }
+
+      const position = stage.position;
+      currentPosition = position;
+
+      if (stage.mood !== mood) {
+        if (mood !== null) {
+          playChime();
+        }
+
+        mood = stage.mood;
+        setSoundMood(stage.mood);
+      }
 
       const delta = Math.min(now - lastFrame, 100) / 1000;
       lastFrame = now;
       const spellWeight = spellWeightAt((now - spellStart) / 1000);
       burstEnergy *= 0.97;
-      const effectsActive = spellWeight > 0 || burstEnergy > 0.01;
+
+      // Ask's body eases between moods instead of snapping.
+      const thinkingTarget = kind === "ask" && askSignal.thinking ? 1 : 0;
+      const voice = kind === "ask" ? askSignal.voice : null;
+      const voiceTarget = voice ? clamp(voice.level(), 0, 1) : 0;
+      askThinking += (thinkingTarget - askThinking) * (1 - Math.exp(-delta * 3));
+      askVoice += (voiceTarget - askVoice) * (voiceTarget > askVoice ? 0.5 : 0.12);
+      askPhase += delta * (0.22 + askThinking * 1.4 + askVoice * 0.4);
+      setSoundDucked(Boolean(voice?.playing()));
+
+      const dimSettled = Math.abs(stage.dim - dim) < 0.005;
+      dim = dimSettled ? stage.dim : dim + (stage.dim - dim) * (1 - Math.exp(-delta * 2.5));
+      const handoffAge = (now - handoffStart) / 1000;
+      const handoffActive = handoffAge < HANDOFF_SECONDS * (1 + STAGGER);
+      const petAge = (now - cat.petStart) / 1000;
+      const petting = reduceMotion ? 0 : petEnvelope(petAge);
+      const effectsActive =
+        spellWeight > 0 ||
+        burstEnergy > 0.01 ||
+        handoffActive ||
+        !dimSettled ||
+        askThinking > 0.001 ||
+        askVoice > 0.001;
 
       if (reduceMotion && !needsDraw && !effectsActive && position === lastPosition) {
         return;
@@ -659,6 +953,8 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
       if (!reduceMotion) {
         // The warp tunnel keeps its own clock so it can speed up smoothly.
         warpTime += delta * (1 + warpBoost * 5);
+        lean.x += (tilt.x - lean.x) * 0.08;
+        lean.y += (tilt.y - lean.y) * 0.08;
       }
 
       const timeFor = (formation: BackdropFormation) =>
@@ -675,7 +971,7 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
       const from = formations[fromIndex];
       const to = formations[toIndex];
       const { width, height, dpr, unit, wide } = layout;
-      const intensity = wide ? 1 : 0.6;
+      const intensity = (wide ? 1 : 0.6) * dim;
       const centerX = width / 2;
       const centerY = height / 2;
 
@@ -688,7 +984,57 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
 
       const fieldX = (pointer.fieldX * width) / unit;
       const fieldY = (pointer.fieldY * height) / unit;
-      const fieldStrength = pointer.strength;
+
+      // The cat watches the cursor (or the phone's tilt) and purrs under it.
+      const catWeight =
+        kind === "explore" && catIndex >= 0
+          ? clamp(1 - Math.abs(position - catIndex), 0, 1)
+          : 0;
+      let lookX = 0;
+      let lookY = 0;
+      let purrTarget = petting;
+
+      if (catWeight > 0.5 && !reduceMotion) {
+        if (pointer.active) {
+          const dx = fieldX - layout.side;
+          const dy = fieldY - (494 - 512) * CAT_SCALE;
+          const distance = Math.hypot(dx, dy) || 1;
+          const reach = Math.min(1, distance / 0.7);
+          lookX = (dx / distance) * reach;
+          lookY = (dy / distance) * reach;
+
+          if (isOnCat(fieldX, fieldY, layout)) {
+            purrTarget = 1;
+          }
+        } else if (tilt.active) {
+          lookX = lean.x;
+          lookY = lean.y;
+        } else {
+          lookX = Math.sin(time * 0.35) * 0.5;
+          lookY = Math.sin(time * 0.23) * 0.25;
+        }
+      }
+
+      cat.lookX += (lookX - cat.lookX) * 0.12;
+      cat.lookY += (lookY - cat.lookY) * 0.12;
+      cat.purr += (purrTarget - cat.purr) * 0.06;
+      setPurr(cat.purr * catWeight);
+
+      // Calm the cursor's push while the cat is being petted.
+      const fieldStrength = pointer.strength * (1 - 0.75 * cat.purr * catWeight);
+      const signals: Signals =
+        kind === "explore" || kind === "ask"
+          ? {
+              askPhase,
+              askThinking,
+              askVoice,
+              catLookX: cat.lookX,
+              catLookY: cat.lookY,
+              catPurr: cat.purr,
+              catPet: petting,
+              catPetAge: petAge,
+            }
+          : QUIET_SIGNALS;
 
       context.setTransform(1, 0, 0, 1, 0, 0);
 
@@ -761,6 +1107,11 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
 
         x += particle.burstX;
         y += particle.burstY;
+
+        // Tilting a phone leans the field; nearer particles move further.
+        const tiltReach = TILT_SHIFT * (0.35 + particle.r3);
+        x += lean.x * tiltReach;
+        y += lean.y * tiltReach;
         particle.lastX = x;
         particle.lastY = y;
         const burstGlow = 1 + Math.min(1.4, Math.hypot(particle.burstVX, particle.burstVY) * 0.25);
@@ -794,11 +1145,20 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
           particle,
           timeFor(from),
           layout,
+          signals,
         );
         const b =
           from === to
             ? a
-            : formationPoint(to, index, particles.length, particle, timeFor(to), layout);
+            : formationPoint(
+                to,
+                index,
+                particles.length,
+                particle,
+                timeFor(to),
+                layout,
+                signals,
+              );
         const local = clamp((progress * (1 + STAGGER) - particle.delay), 0, 1);
         const eased = easeInOutCubic(local);
         // Bend each path sideways mid-flight so shapes swirl into each other.
@@ -835,6 +1195,24 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
           }
         }
 
+        if (handoffActive) {
+          // Fly from where this particle was on the previous page.
+          const flight = clamp(
+            (handoffAge / HANDOFF_SECONDS) * (1 + STAGGER) - particle.delay,
+            0,
+            1,
+          );
+
+          if (flight < 1) {
+            const landed = easeInOutCubic(flight);
+            const travelX = x - particle.handoffX;
+            const travelY = y - particle.handoffY;
+            const bend = Math.sin(Math.PI * landed) * (particle.r2 - 0.5) * 0.6;
+            x = particle.handoffX + travelX * landed - travelY * bend;
+            y = particle.handoffY + travelY * landed + travelX * bend;
+          }
+        }
+
         let depth = a[2] + (b[2] - a[2]) * eased;
 
         if (spellWeight > 0 && spellTargets.length) {
@@ -844,6 +1222,8 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
           depth += (1 - depth) * spellWeight;
         }
 
+        particle.baseX = x;
+        particle.baseY = y;
         drawParticle(
           particle,
           x,
@@ -854,8 +1234,17 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
         );
       }
 
-      const finaleWeight =
-        warpIndex >= 0 ? clamp(1 - Math.abs(position - warpIndex), 0, 1) : 0;
+      // The warp scene's extra particles. Leaving Explore from there pulls
+      // them back into the core as they fade.
+      let finaleWeight: number;
+
+      if (warpIndex >= 0) {
+        finaleWeight = clamp(1 - Math.abs(position - warpIndex), 0, 1);
+        finaleCarry = finaleWeight;
+      } else {
+        finaleCarry *= Math.exp(-delta * 2.4);
+        finaleWeight = finaleCarry;
+      }
 
       if (finaleWeight > 0.001) {
         // Burst out of the core as the scene arrives; collapse back on leaving.
@@ -899,10 +1288,58 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
       context.globalCompositeOperation = "source-over";
     };
 
+    // A tap or click on the cat pets it.
+    const tapStart = { x: 0, y: 0, time: 0 };
+
+    const startTap = (event: PointerEvent) => {
+      tapStart.x = event.clientX;
+      tapStart.y = event.clientY;
+      tapStart.time = performance.now();
+    };
+
+    const finishTap = (event: PointerEvent) => {
+      const isTap =
+        Math.hypot(event.clientX - tapStart.x, event.clientY - tapStart.y) < 10 &&
+        performance.now() - tapStart.time < 600;
+
+      if (
+        !isTap ||
+        routeRef.current !== "explore" ||
+        catIndex < 0 ||
+        Math.abs(currentPosition - catIndex) > 0.3 ||
+        isInteractiveTarget(event.target)
+      ) {
+        return;
+      }
+
+      const x = (event.clientX - layout.width / 2) / layout.unit;
+      const y = (event.clientY - layout.height / 2) / layout.unit;
+
+      if (isOnCat(x, y, layout)) {
+        cat.petStart = performance.now();
+        playChirp();
+        unlockSecret("cat");
+      }
+    };
+
+    // iPhones only share tilt after a tap, so ask on the first tap on empty
+    // space. Safari asks the visitor once.
+    const askForTilt = (event: TouchEvent) => {
+      const kind = routeRef.current;
+
+      if ((kind === "explore" || kind === "ask") && !isInteractiveTarget(event.target)) {
+        requestTiltPermission();
+      }
+    };
+
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(canvas);
     resize();
+    startTilt();
     window.addEventListener("pointermove", trackPointer, { passive: true });
+    window.addEventListener("pointerdown", startTap, { passive: true });
+    window.addEventListener("pointerup", finishTap, { passive: true });
+    window.addEventListener("touchend", askForTilt, { passive: true });
 
     const burst = () => {
       burstEnergy = 1;
@@ -942,11 +1379,16 @@ export function ExploreBackdrop({ formations, positionRef }: ExploreBackdropProp
       window.cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       window.removeEventListener("pointermove", trackPointer);
+      window.removeEventListener("pointerdown", startTap);
+      window.removeEventListener("pointerup", finishTap);
+      window.removeEventListener("touchend", askForTilt);
       stopEggs.forEach((stop) => stop());
       document.removeEventListener("mouseout", releasePointer);
       window.removeEventListener("blur", deactivatePointer);
+      setPurr(0);
+      setSoundDucked(false);
     };
-  }, [formations, positionRef]);
+  }, []);
 
-  return <canvas ref={canvasRef} className="explore-backdrop" aria-hidden="true" />;
+  return <canvas ref={canvasRef} className="site-backdrop" aria-hidden="true" />;
 }

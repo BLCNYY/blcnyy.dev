@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { askSignal } from "@/lib/backdrop-stage";
 import { type Dictionary, getDictionary } from "@/lib/dictionaries";
 import type { Locale } from "@/lib/i18n";
 import { MAX_CHAT_MESSAGE_LENGTH } from "@/lib/limits";
@@ -471,6 +472,62 @@ function wrapPcmInWav(pcmBuffer: ArrayBuffer, sampleRate = 24000) {
   return new Blob([wavBuffer], { type: "audio/wav" });
 }
 
+// Ask's particle body ripples with the spoken answer. Loudness comes from the
+// WAV data itself, so playback goes through the browser untouched.
+const VOICE_FRAME_SECONDS = 0.02;
+const voiceEnvelopes = new Map<string, Float32Array>();
+
+async function readVoiceEnvelope(url: string) {
+  const cached = voiceEnvelopes.get(url);
+
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const buffer = await (await fetch(url)).arrayBuffer();
+
+    if (buffer.byteLength <= 44) {
+      return null;
+    }
+
+    const sampleRate = new DataView(buffer).getUint32(24, true) || 24000;
+    const samples = new Int16Array(buffer, 44, Math.floor((buffer.byteLength - 44) / 2));
+    const frameSize = Math.max(1, Math.round(sampleRate * VOICE_FRAME_SECONDS));
+    const levels = new Float32Array(Math.ceil(samples.length / frameSize));
+    let loudest = 0;
+
+    for (let frame = 0; frame < levels.length; frame += 1) {
+      let sum = 0;
+      const start = frame * frameSize;
+      const end = Math.min(start + frameSize, samples.length);
+
+      for (let index = start; index < end; index += 1) {
+        sum += samples[index] * samples[index];
+      }
+
+      levels[frame] = Math.sqrt(sum / Math.max(1, end - start));
+      loudest = Math.max(loudest, levels[frame]);
+    }
+
+    if (loudest > 0) {
+      for (let frame = 0; frame < levels.length; frame += 1) {
+        levels[frame] /= loudest;
+      }
+    }
+
+    voiceEnvelopes.set(url, levels);
+
+    if (voiceEnvelopes.size > 8) {
+      voiceEnvelopes.delete(voiceEnvelopes.keys().next().value as string);
+    }
+
+    return levels;
+  } catch {
+    return null;
+  }
+}
+
 function openSpeechCacheDb() {
   return new Promise<IDBDatabase | null>((resolve) => {
     if (typeof window === "undefined" || !("indexedDB" in window)) {
@@ -628,7 +685,41 @@ export function ChatShell({ locale }: { locale: Locale }) {
     audioRef.current = null;
     spokenAnswerRef.current = "";
     audioUrlRef.current = "";
+    askSignal.voice = null;
   }
+
+  function followVoice(audio: HTMLAudioElement) {
+    void readVoiceEnvelope(audio.src).then((levels) => {
+      if (!levels || audioRef.current !== audio) {
+        return;
+      }
+
+      askSignal.voice = {
+        level: () =>
+          audio.paused
+            ? 0
+            : (levels[Math.floor(audio.currentTime / VOICE_FRAME_SECONDS)] ?? 0),
+        playing: () => !audio.paused && !audio.ended,
+      };
+    });
+  }
+
+  useEffect(() => {
+    askSignal.thinking = isLoading;
+  }, [isLoading]);
+
+  useEffect(() => {
+    askSignal.answerShown = showResult;
+  }, [showResult]);
+
+  useEffect(
+    () => () => {
+      askSignal.thinking = false;
+      askSignal.answerShown = false;
+      askSignal.voice = null;
+    },
+    [],
+  );
 
   function removeCachedSpeechAudio(speechText: string) {
     const cachedAudio = speechCacheRef.current.get(speechText);
@@ -1055,6 +1146,7 @@ export function ChatShell({ locale }: { locale: Locale }) {
       audioRef.current = audio;
       audioUrlRef.current = cachedAudio.url;
       spokenAnswerRef.current = speechText;
+      followVoice(audio);
 
       audio.onended = () => {
         clearSpeechAudio();
@@ -1092,6 +1184,7 @@ export function ChatShell({ locale }: { locale: Locale }) {
       audioRef.current = audio;
       audioUrlRef.current = audioUrl;
       spokenAnswerRef.current = speechText;
+      followVoice(audio);
 
       audio.onended = () => {
         clearSpeechAudio();
@@ -1154,6 +1247,7 @@ export function ChatShell({ locale }: { locale: Locale }) {
       audioRef.current = audio;
       audioUrlRef.current = audioUrl;
       spokenAnswerRef.current = speechText;
+      followVoice(audio);
 
       audio.onended = () => {
         clearSpeechAudio();

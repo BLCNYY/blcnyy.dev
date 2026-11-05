@@ -15,10 +15,7 @@ import {
   useState,
 } from "react";
 
-import {
-  type BackdropFormation,
-  ExploreBackdrop,
-} from "@/components/explore-backdrop";
+import { type BackdropFormation, setExploreStage } from "@/lib/backdrop-stage";
 import { formatIsoDate } from "@/lib/date";
 import { type Dictionary, getDictionary } from "@/lib/dictionaries";
 import type {
@@ -616,6 +613,13 @@ export function ExploreExperience({
     setIsReady(true);
   }, [lastSceneIndex]);
 
+  // The site-wide particle field draws this page's scene shapes.
+  useLayoutEffect(() => {
+    setExploreStage({ formations: backdropFormations, positionRef: displayPositionRef });
+
+    return () => setExploreStage(null);
+  }, [backdropFormations]);
+
   useEffect(() => {
     document.documentElement.classList.add("explore-locked");
     const readyFrame = window.requestAnimationFrame(() => setIsReady(true));
@@ -844,11 +848,6 @@ export function ExploreExperience({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <ExploreBackdrop
-        formations={backdropFormations}
-        positionRef={displayPositionRef}
-      />
-
       <p className="sr-only" aria-live="polite">
         {dictionary.explore.sectionStatus(
           activeIndex + 1,

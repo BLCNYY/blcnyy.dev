@@ -32,6 +32,7 @@ export const SECRET_IDS = [
   "snake",
   "ship-it",
   "runaway-page",
+  "cat",
 ] as const;
 
 export type SecretId = (typeof SECRET_IDS)[number];

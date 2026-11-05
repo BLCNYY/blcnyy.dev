@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
 
 import { EasterEggs } from "@/components/easter-eggs/easter-eggs";
+import { SiteBackdrop } from "@/components/site-backdrop";
 import { SiteNavigation } from "@/components/site-navigation";
 import { baseOpenGraph, siteConfig } from "@/lib/site";
 
@@ -63,6 +64,7 @@ export default function RootLayout({
       className={`${ibmPlexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
+        <SiteBackdrop />
         <SiteNavigation />
         {children}
         <EasterEggs />

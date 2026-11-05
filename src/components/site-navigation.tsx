@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { initSound, toggleSound, useSoundEnabled } from "@/lib/ambient-sound";
+import { requestTiltPermission } from "@/lib/device-tilt";
 import { getDictionary } from "@/lib/dictionaries";
 import { SECRET_IDS, useFoundSecrets } from "@/lib/easter-eggs";
 import {
@@ -64,6 +66,62 @@ function CheckIcon() {
     >
       <path d="m5 12.5 4.5 4.5L19 7.5" />
     </svg>
+  );
+}
+
+function SoundIcon({ on }: { on: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="site-sound-icon"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 9.5h3.2L12 5.6v12.8l-4.8-3.9H4z" />
+      {on ? (
+        <>
+          <path className="site-sound-wave" d="M15.6 9.2a4 4 0 0 1 0 5.6" />
+          <path className="site-sound-wave is-outer" d="M18.2 6.6a7.6 7.6 0 0 1 0 10.8" />
+        </>
+      ) : (
+        <path d="m16 9.5 5 5m0-5-5 5" />
+      )}
+    </svg>
+  );
+}
+
+// Off by default. Turning it on is also the tap iPhones need before they share
+// tilt with the particles.
+function SoundToggle({ locale }: { locale: Locale }) {
+  const isOn = useSoundEnabled();
+  const dictionary = getDictionary(locale);
+  const label = isOn ? dictionary.nav.soundOff : dictionary.nav.soundOn;
+
+  useEffect(() => {
+    initSound();
+  }, []);
+
+  return (
+    <button
+      type="button"
+      className="site-sound-button"
+      aria-pressed={isOn}
+      aria-label={label}
+      title={label}
+      onClick={() => {
+        toggleSound();
+
+        if (!isOn) {
+          requestTiltPermission();
+        }
+      }}
+    >
+      <SoundIcon on={isOn} />
+    </button>
   );
 }
 
@@ -210,6 +268,7 @@ export function SiteNavigation() {
           </Link>
         ))}
       </div>
+      <SoundToggle locale={locale} />
       <LanguageMenu key={pathname} basePath={basePath} locale={locale} />
     </nav>
   );
