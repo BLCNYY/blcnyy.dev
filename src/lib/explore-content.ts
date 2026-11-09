@@ -5,7 +5,13 @@ import type { NotionPost } from "@/lib/notion";
 export type ExploreProjectLink = {
   label: string;
   url: string;
-  kind?: "app-store";
+  kind?: "app-store" | "github";
+};
+
+// A "Download for: Mac · Windows · Linux" line under the project's buttons.
+export type ExploreProjectDownloads = {
+  label: string;
+  links: { label: string; url: string }[];
 };
 
 export type ExploreProject = {
@@ -16,6 +22,7 @@ export type ExploreProject = {
   // Not released yet: the scene shows a "Coming soon" badge in place of links.
   status?: "coming-soon";
   links: ExploreProjectLink[];
+  downloads?: ExploreProjectDownloads;
 };
 
 export type ArticlePreview = {
@@ -41,6 +48,22 @@ export const DULY_URL = "https://useduly.app";
 export const DULY_APP_STORE_URL =
   "https://apps.apple.com/app/duly-life-organizer/id6817079222";
 export const SALAH_NOW_URL = "https://salahnow.app";
+export const PURRLOADER_GITHUB_URL = "https://github.com/BLCNYY/Purrloader";
+
+const purrloaderDownloads = (label: string): ExploreProjectDownloads => ({
+  label,
+  links: [
+    {
+      label: "Mac",
+      url: "https://github.com/BLCNYY/Purrloader/releases/latest/download/Purrloader.dmg",
+    },
+    {
+      label: "Windows",
+      url: "https://github.com/BLCNYY/Purrloader/releases/latest/download/Purrloader-Setup-x64.exe",
+    },
+    { label: "Linux", url: "https://github.com/BLCNYY/Purrloader#linux" },
+  ],
+});
 
 const exploreContent: Record<Locale, ExploreContent> = {
   en: {
@@ -76,9 +99,17 @@ const exploreContent: Record<Locale, ExploreContent> = {
       {
         id: "purrloader",
         name: "Purrloader",
-        statement: "Save videos and audio from the web easily.",
-        status: "coming-soon",
-        links: [],
+        statement: "The quiet way to save videos.",
+        summary:
+          "A free, open-source app that saves video or audio from thousands of sites, playlists included. No account, ads, or tracking.",
+        links: [
+          {
+            label: "View on GitHub",
+            url: PURRLOADER_GITHUB_URL,
+            kind: "github",
+          },
+        ],
+        downloads: purrloaderDownloads("Download for"),
       },
     ],
   },
@@ -115,9 +146,17 @@ const exploreContent: Record<Locale, ExploreContent> = {
       {
         id: "purrloader",
         name: "Purrloader",
-        statement: "Web'deki videoları ve sesleri kolayca kaydet.",
-        status: "coming-soon",
-        links: [],
+        statement: "Video kaydetmenin sessiz yolu.",
+        summary:
+          "Binlerce siteden, oynatma listeleri dahil, video ya da ses kaydeden ücretsiz ve açık kaynaklı bir uygulama. Hesap, reklam ya da takip yok.",
+        links: [
+          {
+            label: "GitHub'da görüntüle",
+            url: PURRLOADER_GITHUB_URL,
+            kind: "github",
+          },
+        ],
+        downloads: purrloaderDownloads("İndir"),
       },
     ],
   },

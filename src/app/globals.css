@@ -626,6 +626,76 @@ html.explore-locked body {
   margin-top: -0.12rem;
 }
 
+/* A squircle, set apart from the App Store pill. Browsers without
+   corner-shape get a plain rounded square. */
+.github-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.72rem 1.25rem 0.72rem 1.05rem;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms ease;
+}
+
+@supports (corner-shape: squircle) {
+  .github-button {
+    border-radius: 22px;
+    corner-shape: squircle;
+  }
+}
+
+@media (hover: hover) {
+  .github-button:hover {
+    box-shadow: 0 18px 44px rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+  }
+}
+
+.github-button:focus-visible {
+  outline: 2px solid var(--orange-bright);
+  outline-offset: 4px;
+}
+
+.github-button-logo {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.project-downloads {
+  margin-top: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: var(--font-mono), "SFMono-Regular", monospace;
+  font-size: 0.83rem;
+  letter-spacing: -0.025em;
+}
+
+.project-downloads a {
+  color: rgba(255, 255, 255, 0.86);
+  text-decoration-color: rgba(255, 255, 255, 0.26);
+  text-decoration-line: underline;
+  text-underline-offset: 5px;
+  transition: color 200ms ease, text-decoration-color 200ms ease;
+}
+
+.project-downloads a:hover {
+  color: #ffffff;
+  text-decoration-color: var(--orange-bright);
+}
+
+.project-downloads a:focus-visible {
+  outline: 2px solid var(--orange-bright);
+  outline-offset: 4px;
+}
+
 /* Plain text where the download button would be for unreleased projects. */
 .project-status {
   color: rgba(255, 255, 255, 0.78);
@@ -2250,9 +2320,14 @@ html.explore-locked body {
     margin-top: 0.85rem;
   }
 
-  .app-store-button {
+  .app-store-button,
+  .github-button {
     padding: 0.55rem 1.1rem 0.55rem 0.9rem;
     font-size: 0.9rem;
+  }
+
+  .project-downloads {
+    margin-top: 0.7rem;
   }
 
   .social-scene-copy {

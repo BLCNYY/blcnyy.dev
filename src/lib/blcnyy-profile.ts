@@ -185,10 +185,17 @@ export const profile = {
     },
     {
       name: "Purrloader",
+      url: "https://github.com/BLCNYY/Purrloader",
       summary:
-        "An upcoming project from Ömer for saving videos and audio from the web easily. It is coming soon and has not been released yet.",
+        "Ömer's free, open-source desktop app for Mac, Windows, and Linux: the quiet way to save videos. It saves video (MP4) or audio (MP3, M4A, or lossless) from thousands of sites through yt-dlp. No account, ads, or tracking.",
       details: [
-        "Status: coming soon. There is no release date, download link, or website for it yet.",
+        "Status: released. Source and install instructions: https://github.com/BLCNYY/Purrloader",
+        "Download for Mac (macOS 15+, Apple Silicon or Intel): https://github.com/BLCNYY/Purrloader/releases/latest/download/Purrloader.dmg",
+        "Download for Windows 10 or 11: https://github.com/BLCNYY/Purrloader/releases/latest/download/Purrloader-Setup-x64.exe (an Arm build is on the releases page). The installer isn't code-signed yet, so Windows may warn; click More info, then Run anyway.",
+        "Linux: .deb, AppImage, and tar.gz builds for x64 and arm64, see https://github.com/BLCNYY/Purrloader#linux",
+        "Features: playlists with a checklist to pick videos, pause and resume even after quitting, subtitles, SponsorBlock sponsor skipping, downloading part of a video, private and age-restricted videos using the browser's sign-in, progress in the menu bar or system tray, and light and dark mode.",
+        "On first launch it downloads its helper tools (yt-dlp, FFmpeg, and Deno) and verifies their checksums. It keeps yt-dlp updated by itself. It doesn't get around DRM, so most paid streaming services don't work.",
+        "The Mac app is built in SwiftUI; the Windows and Linux app is built in Rust. MIT licensed.",
       ],
     },
     {
@@ -199,7 +206,7 @@ export const profile = {
       details: [
         "Built with Next.js.",
         "The top navigation has three items: Explore, Writing, and Ask, plus a globe button that opens a language menu (English or Türkçe). The Turkish version lives under /tr, and visitors whose browser or system language is Turkish land on it automatically.",
-        "Explore at / presents scenes for his identity (with links to X, Instagram, YouTube, and GitHub), introduction, story, Duly, Salah[Now], Purrloader (coming soon), his Turkish content on Instagram and YouTube, latest articles, and an invitation to Ask.",
+        "Explore at / presents scenes for his identity (with links to X, Instagram, YouTube, and GitHub), introduction, story, Duly, Salah[Now], Purrloader, his Turkish content on Instagram and YouTube, latest articles, and an invitation to Ask.",
         "Ask at /ask is an AI profile grounded in src/lib/blcnyy-profile.ts, where visitors can ask about Ömer's story, work, interests, and projects.",
         "Published writing is available under Writing at /blog.",
         "The blog is Notion-backed, and most articles can be read in English, Turkish, Spanish, German, and Italian.",
@@ -256,7 +263,7 @@ export const profile = {
     "He is from İstanbul, Türkiye.",
     "He is a student.",
     "He is interested in tech, AI, design, and building products.",
-    "He has public projects including Duly, blcnyy.dev, Salah[Now], and Subzeez, and an upcoming one called Purrloader.",
+    "He has public projects including Duly, blcnyy.dev, Salah[Now], Purrloader, and Subzeez.",
     "He has built a public online presence around AI and internet products.",
     "He uses AI-assisted workflows to build.",
     "He shares public thoughts on X, makes Turkish tech and AI content on Instagram, and makes Turkish videos on YouTube.",
@@ -300,7 +307,7 @@ export const profile = {
     {
       question: "What projects has he worked on publicly?",
       answer:
-        "Publicly referenced projects include Duly, blcnyy.dev, Salah[Now], and Subzeez. Purrloader, for saving videos and audio from the web, is coming soon.",
+        "Publicly referenced projects include Duly, blcnyy.dev, Salah[Now], Purrloader, and Subzeez. Purrloader is a free, open-source app for Mac, Windows, and Linux for saving videos and audio from the web.",
     },
     {
       question: "What is Duly?",
